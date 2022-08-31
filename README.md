@@ -61,7 +61,9 @@ SLEEPING_BEAUTY_LISTEN_HOST=0.0.0.0
 # Optional. Path to request on the local server to detect when it has
 # finished starting up. Requests are made once per second,
 # synchronously, until one returns 2xx. Pending connections will be
-# held until the server passes health checks.
+# held until the server passes health checks. If absent or empty, no
+# healthcheck is done and pending requests are held for one second
+# before being passed through.
 SLEEPING_BEAUTY_HEALTHCHECK_PATH=/health
 ```
 
