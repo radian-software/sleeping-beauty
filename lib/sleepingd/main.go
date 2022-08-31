@@ -2,6 +2,8 @@ package sleepingd
 
 import (
 	"fmt"
+	"io"
+	"net"
 
 	"gopkg.in/validator.v2"
 )
@@ -19,6 +21,19 @@ func Main(opts *Options) error {
 	if err := validator.Validate(opts); err != nil {
 		return fmt.Errorf("internal logic error: failed struct validation: %v", err)
 	}
-	fmt.Println("Hello, world!")
-	return nil
+	l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", opts.ListenHost, opts.ListenPort))
+	if err != nil {
+		return err
+	}
+	defer l.Close()
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			return err
+		}
+		go func(c net.Conn) {
+			_, _ = io.Copy(c, c)
+			_ = c.Close()
+		}(conn)
+	}
 }

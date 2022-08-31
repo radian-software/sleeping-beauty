@@ -13,7 +13,7 @@ type envConfig struct {
 	TimeoutSeconds  int    `env:"SLEEPING_BEAUTY_TIMEOUT_SECONDS,required"`
 	CommandPort     int    `env:"SLEEPING_BEAUTY_COMMAND_PORT,required"`
 	ListenPort      int    `env:"SLEEPING_BEAUTY_LISTEN_PORT,required"`
-	ListenHost      string `env:"SLEEPING_BEAUTY_LISTEN_HOST" envDefault:"0.0.0.0"`
+	ListenHost      string `env:"SLEEPING_BEAUTY_LISTEN_HOST,notEmpty" envDefault:"0.0.0.0"`
 	HealthcheckPath string `env:"SLEEPING_BEAUTY_HEALTHCHECK_PATH"`
 }
 
@@ -21,6 +21,15 @@ func mainE() error {
 	envCfg := envConfig{}
 	if err := env.Parse(&envCfg); err != nil {
 		return err
+	}
+	if envCfg.TimeoutSeconds <= 0 {
+		return fmt.Errorf("invalid timeout: %d", envCfg.TimeoutSeconds)
+	}
+	if envCfg.CommandPort <= 0 {
+		return fmt.Errorf("invalid port: %d", envCfg.CommandPort)
+	}
+	if envCfg.ListenPort <= 0 {
+		return fmt.Errorf("invalid port: %d", envCfg.ListenPort)
 	}
 	return sleepingd.Main(&sleepingd.Options{
 		Command:         envCfg.Command,
