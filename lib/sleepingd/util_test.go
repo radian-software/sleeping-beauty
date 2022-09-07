@@ -52,11 +52,11 @@ func Test_GetDeadMansSwitch(t *testing.T) {
 				},
 				{
 					Name:     "wait 3",
-					Duration: 150 * time.Millisecond,
+					Duration: 300 * time.Millisecond,
 				},
 				{
 					Name:     "wait 4",
-					Duration: 150 * time.Millisecond,
+					Duration: 100 * time.Millisecond,
 				},
 			},
 			ShouldExpireDuring: "wait 3",
@@ -144,6 +144,7 @@ func Test_GetDeadMansSwitch(t *testing.T) {
 						// Proceed to next phase
 					case <-s.ExpireCh:
 						assert.Equal(t, test.ShouldExpireDuring, phase.Name)
+						return
 					}
 					continue
 				}
