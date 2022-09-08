@@ -7,7 +7,7 @@ From Wikipedia:
 > as "The Sleeping Beauty in the Datacenter", is a classic fairy tale
 > about a web application who is cursed to sleep for an indeterminate
 > period of time by an evil systems administrator, to be awakened by a
-> handsome TCP request at the end of them.
+> handsome TCP request at the end of it.
 
 \[citation needed\]
 
