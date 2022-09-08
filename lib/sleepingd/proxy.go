@@ -22,7 +22,6 @@ func NewProxy(opts *ProxyOptions) (*Proxy, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer l.Close()
 	go func() {
 		for {
 			conn, err := l.Accept()
