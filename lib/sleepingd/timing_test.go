@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_GetDeadMansSwitch(t *testing.T) {
+func Test_DeadMansSwitch(t *testing.T) {
 	type deadMansSwitchTestPhase struct {
 		Name      string
 		Duration  time.Duration
@@ -131,7 +131,7 @@ func Test_GetDeadMansSwitch(t *testing.T) {
 			assert.NotZero(t, test.ShouldExpireDuring, "bad test")
 			assert.NotZero(t, test.Timeout, "bad test")
 			t.Parallel()
-			s := GetDeadMansSwitch(test.Timeout)
+			s := NewDeadMansSwitch(test.Timeout)
 			for _, phase := range test.Phases {
 				assert.NotZero(t, phase.Name, "bad test")
 				if phase.SendDelay {
