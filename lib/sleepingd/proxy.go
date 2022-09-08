@@ -37,16 +37,10 @@ func NewProxy(opts *ProxyOptions) (*Proxy, error) {
 					_, _ = c.Write([]byte(fmt.Sprintf("failed to dial upstream %s: %s\n", opts.UpstreamAddr, err)))
 					return
 				}
-				_, err = io.Copy(uc, c)
-				if err != nil {
-					_, _ = c.Write([]byte(fmt.Sprintf("failed to write to upstream %s: %s\n", opts.UpstreamAddr, err)))
-				}
-				written, err := io.Copy(c, uc)
-				if err != nil && written == 0 {
-					// If partial response, don't
-					// write error message to stream
-					_, _ = c.Write([]byte(fmt.Sprintf("got no response from upstream %s: %s\n", opts.UpstreamAddr, err)))
-				}
+				go func() {
+					_, _ = io.Copy(uc, c)
+				}()
+				_, _ = io.Copy(c, uc)
 				_ = uc.Close()
 				_ = c.Close()
 			}(conn)
