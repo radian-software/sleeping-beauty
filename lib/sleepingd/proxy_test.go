@@ -19,7 +19,9 @@ func Test_Proxy(t *testing.T) {
 		Addr:    "127.0.0.1:7000",
 		Handler: mux,
 	}
-	go assert.NoError(t, server.ListenAndServe())
+	go func() {
+		assert.NoError(t, server.ListenAndServe())
+	}()
 	defer server.Close()
 	proxy, err := NewProxy(&ProxyOptions{
 		Protocol:     "tcp",
