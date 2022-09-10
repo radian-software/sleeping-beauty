@@ -37,7 +37,7 @@ func Main(opts *Options) error {
 	newConnCallback := func() {
 		dmsLock.Lock()
 		defer dmsLock.Unlock()
-		proc.EnsureStarted()
+		Must(proc.EnsureStarted())
 		if dms == nil || dms.Expired {
 			// If dms is nil then it means no timer is
 			// running currently. If dms is not nil but
@@ -49,7 +49,7 @@ func Main(opts *Options) error {
 			// Therefore, we can set dms.Expired back to
 			// false to cancel the process stopping,
 			// before setting a new timer.
-			if dms.Expired {
+			if dms != nil && dms.Expired {
 				dms.Expired = false
 			}
 			dms = NewDeadMansSwitch(time.Duration(opts.TimeoutSeconds) * time.Second)
@@ -65,7 +65,7 @@ func Main(opts *Options) error {
 				// by the code in the parent goroutine
 				// above.
 				if dms.Expired {
-					proc.EnsureStopped()
+					Must(proc.EnsureStopped())
 					dms = nil
 				}
 			}()
@@ -82,11 +82,12 @@ func Main(opts *Options) error {
 	if err != nil {
 		return err
 	}
+	fmt.Fprintf(os.Stderr, "sleepingd: listening on %s:%d, proxying to 127.0.0.1:%d with %s command line: %s\n", opts.ListenHost, opts.ListenPort, opts.CommandPort, shell, opts.Command)
 	interruptCh := make(chan os.Signal, 1)
 	signal.Notify(interruptCh, syscall.SIGINT, syscall.SIGTERM)
 	interrupt := <-interruptCh
-	_ = proxy.Close()
-	proc.EnsureStopped()
+	LogError(proxy.Close())
+	LogError(proc.EnsureStopped())
 	os.Exit(128 + int(interrupt.(syscall.Signal)))
 	panic("unreachable code")
 }
