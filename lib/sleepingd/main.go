@@ -31,6 +31,7 @@ func Main(opts *Options) error {
 	proc := &SubprocessManager{
 		Command:                []string{shell, "-c", opts.Command},
 		TerminationGracePeriod: 5 * time.Second,
+		EnsureListeningTimeout: 5 * time.Second,
 	}
 	dms := (*DeadMansSwitch)(nil)
 	dmsLock := sync.Mutex{}
@@ -38,6 +39,7 @@ func Main(opts *Options) error {
 		dmsLock.Lock()
 		defer dmsLock.Unlock()
 		Must(proc.EnsureStarted())
+		Must(proc.EnsureListening(opts.CommandPort))
 		if dms == nil || dms.Expired {
 			// If dms is nil then it means no timer is
 			// running currently. If dms is not nil but

@@ -2,6 +2,7 @@ package sleepingd
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"syscall"
@@ -11,7 +12,9 @@ import (
 type SubprocessManager struct {
 	Command                []string
 	TerminationGracePeriod time.Duration
+	EnsureListeningTimeout time.Duration
 	cmd                    *exec.Cmd
+	listening              bool
 }
 
 func (sm *SubprocessManager) EnsureStopped() error {
@@ -55,4 +58,29 @@ func (sm *SubprocessManager) EnsureStarted() error {
 	sm.cmd.Stdout = os.Stdout
 	sm.cmd.Stderr = os.Stderr
 	return sm.cmd.Start()
+}
+
+func (sm *SubprocessManager) EnsureListening(port int) error {
+	if sm.listening {
+		return nil // already listening
+	}
+	done := make(chan error)
+	go func() {
+		for {
+			conn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+			if err == nil {
+				_ = conn.Close()
+				done <- nil
+				return
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
+	select {
+	case err := <-done:
+		sm.listening = true
+		return err
+	case <-time.NewTimer(sm.EnsureListeningTimeout).C:
+		return fmt.Errorf("process did not start listening on port %d", port)
+	}
 }
