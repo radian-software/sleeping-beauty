@@ -9,12 +9,11 @@ import (
 )
 
 type envConfig struct {
-	Command         string `env:"SLEEPING_BEAUTY_COMMAND,notEmpty"`
-	TimeoutSeconds  int    `env:"SLEEPING_BEAUTY_TIMEOUT_SECONDS,required"`
-	CommandPort     int    `env:"SLEEPING_BEAUTY_COMMAND_PORT,required"`
-	ListenPort      int    `env:"SLEEPING_BEAUTY_LISTEN_PORT,required"`
-	ListenHost      string `env:"SLEEPING_BEAUTY_LISTEN_HOST,notEmpty" envDefault:"0.0.0.0"`
-	HealthcheckPath string `env:"SLEEPING_BEAUTY_HEALTHCHECK_PATH"`
+	Command        string `env:"SLEEPING_BEAUTY_COMMAND,notEmpty"`
+	TimeoutSeconds int    `env:"SLEEPING_BEAUTY_TIMEOUT_SECONDS,required"`
+	CommandPort    int    `env:"SLEEPING_BEAUTY_COMMAND_PORT,required"`
+	ListenPort     int    `env:"SLEEPING_BEAUTY_LISTEN_PORT,required"`
+	ListenHost     string `env:"SLEEPING_BEAUTY_LISTEN_HOST,notEmpty" envDefault:"0.0.0.0"`
 }
 
 func mainE() error {
@@ -32,12 +31,11 @@ func mainE() error {
 		return fmt.Errorf("invalid port: %d", envCfg.ListenPort)
 	}
 	return sleepingd.Main(&sleepingd.Options{
-		Command:         envCfg.Command,
-		TimeoutSeconds:  envCfg.TimeoutSeconds,
-		CommandPort:     envCfg.CommandPort,
-		ListenPort:      envCfg.ListenPort,
-		ListenHost:      envCfg.ListenHost,
-		HealthcheckPath: envCfg.HealthcheckPath,
+		Command:        envCfg.Command,
+		TimeoutSeconds: envCfg.TimeoutSeconds,
+		CommandPort:    envCfg.CommandPort,
+		ListenPort:     envCfg.ListenPort,
+		ListenHost:     envCfg.ListenHost,
 	})
 }
 

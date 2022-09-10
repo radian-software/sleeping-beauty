@@ -57,14 +57,6 @@ SLEEPING_BEAUTY_LISTEN_PORT=80
 # interfaces. You may wish to set this to 127.0.0.1 instead if you
 # have placed Sleeping Beauty behind a further proxy or load balancer.
 SLEEPING_BEAUTY_LISTEN_HOST=0.0.0.0
-
-# Optional. Path to request on the local server to detect when it has
-# finished starting up. Requests are made once per second,
-# synchronously, until one returns 2xx. Pending connections will be
-# held until the server passes health checks. If absent or empty, no
-# healthcheck is done and pending requests are held for one second
-# before being passed through.
-SLEEPING_BEAUTY_HEALTHCHECK_PATH=/health
 ```
 
 After configuring environment variables, simply run the `sleepingd`

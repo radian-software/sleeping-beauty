@@ -7,7 +7,8 @@ import (
 )
 
 // ProxyOptions is used to configure NewProxy, which see for
-// documentation. All fields are required except NewConnectionCh.
+// documentation. All fields are required except
+// NewConnectionCallback.
 type ProxyOptions struct {
 	// Protocol is either "tcp" or "udp"
 	Protocol string
@@ -17,12 +18,13 @@ type ProxyOptions struct {
 	// UpstreamAddr is the upstream address the proxy will proxy
 	// TCP/UDP traffic to, e.g. "127.0.0.1:8080"
 	UpstreamAddr string
-	// NewConnectionCh is an optional channel. If it is provided
-	// then the channel will be sent an event every time there is
-	// a new incoming TCP/UDP connection, it is the caller's
-	// responsibility to make sure that events are read from this
-	// channel in a timely manner
-	NewConnectionCh *chan<- struct{}
+	// NewConnectionCallback is a function of no arguments,
+	// optional. If provided, then it is called synchronously when
+	// a new connection is accepted, but before the connection is
+	// proxied to the upstream address. This could be used to
+	// track metrics on incoming connections, or to ensure that
+	// the upstream is available before traffic is proxied to it.
+	NewConnectionCallback func()
 }
 
 // Proxy is a struct returned by NewProxy, that represents a running
@@ -46,10 +48,10 @@ func NewProxy(opts *ProxyOptions) (*Proxy, error) {
 			if err != nil {
 				continue
 			}
-			if opts.NewConnectionCh != nil {
-				*opts.NewConnectionCh <- struct{}{}
-			}
 			go func(c net.Conn) {
+				if opts.NewConnectionCallback != nil {
+					opts.NewConnectionCallback()
+				}
 				uc, err := net.Dial(opts.Protocol, opts.UpstreamAddr)
 				if err != nil {
 					_, _ = c.Write([]byte(fmt.Sprintf("failed to dial upstream %s: %s\n", opts.UpstreamAddr, err)))

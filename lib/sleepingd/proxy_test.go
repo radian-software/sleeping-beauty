@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
@@ -76,13 +77,17 @@ func getEchoserver(t *testing.T, protocol string, addr string) net.Listener {
 func Test_Proxy_NewConnectionChannel(t *testing.T) {
 	echoserver := getEchoserver(t, "tcp", "127.0.0.1:7000")
 	defer echoserver.Close()
-	ch := make(chan struct{})
-	subch := chan<- struct{}(ch)
+	numConns := 0
+	numConnsLock := &sync.Mutex{}
 	proxy, err := NewProxy(&ProxyOptions{
-		Protocol:        "tcp",
-		ListenAddr:      "127.0.0.1:7001",
-		UpstreamAddr:    "127.0.0.1:7000",
-		NewConnectionCh: &subch,
+		Protocol:     "tcp",
+		ListenAddr:   "127.0.0.1:7001",
+		UpstreamAddr: "127.0.0.1:7000",
+		NewConnectionCallback: func() {
+			numConnsLock.Lock()
+			defer numConnsLock.Unlock()
+			numConns += 1
+		},
 	})
 	assert.NoError(t, err)
 	defer proxy.Close()
@@ -98,18 +103,6 @@ func Test_Proxy_NewConnectionChannel(t *testing.T) {
 			assert.Equal(t, message, string(data))
 		}()
 	}
-	for i := 0; i < 5; i++ {
-		select {
-		case <-ch:
-			continue
-		case <-time.NewTimer(500 * time.Millisecond).C:
-			assert.Fail(t, "wasn't notified about connection #%d", i)
-		}
-	}
-	select {
-	case <-ch:
-		assert.Fail(t, "got notified about same connection multiple times")
-	case <-time.NewTimer(500 * time.Millisecond).C:
-		// expected
-	}
+	time.Sleep(250 * time.Millisecond)
+	assert.Equal(t, 5, numConns)
 }
