@@ -28,6 +28,6 @@ releasenotes: version
 release:
 	@echo "Releasing version $(VERSION)"
 	@$(RELEASE_NOTES) > .releasenotes.tmp.md
-	git tag v$(VERSION) HEAD
-	git push origin v$(VERSION)
+	git tag v$(VERSION) HEAD $(if $(FORCE),-f,)
+	git push origin v$(VERSION) $(if $(FORCE),-f,)
 	goreleaser release --rm-dist --release-notes=.releasenotes.tmp.md
