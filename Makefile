@@ -10,6 +10,10 @@ REMOVE_BLANK_LINES = awk 'NF {p=1} p' | tac | awk 'NF {p=1} p' | tac
 # another one.
 RELEASE_NOTES = cat CHANGELOG.md | sed '/^\#\#/,$$!d' | tail -n+2 | sed -n '/^\#\#/q;p' | $(REMOVE_BLANK_LINES)
 
+.PHONY: build
+build:
+	go build ./cmd/sleepingd
+
 .PHONY: version
 version:
 	@echo "Current version is $(VERSION) according to CHANGELOG.md"
