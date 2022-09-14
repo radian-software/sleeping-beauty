@@ -68,9 +68,13 @@ observing the logs and HTTP response.
 ## Installation
 
 Sleeping Beauty is distributed as a single, statically-linked binary.
-To install it, download the binary for your preferred version from
-GitHub Releases, and install it to your preferred location.
+To install it, download from GitHub Releases your preferred artifact
+(tarball, deb, rpm, apk) for your preferred machine architecture,
+operating system, and version, and install to taste. You can also pull
+from [Docker
+Hub](https://hub.docker.com/r/radiansoftware/sleeping-beauty) which
+may be convenient for copying the binary into your Dockerfile.
 
 Alternatively, you may compile your own binary. This is done by
-cloning this repository at the desired revision, and running `go build
-./cmd/sleepingd`.
+cloning this repository at the desired revision, and running `make
+build`. You have to have Go installed.
