@@ -1,0 +1,33 @@
+builds:
+  - id: sleeping-beauty
+    main: ./cmd/sleepingd
+    binary: sleepingd
+nfpms:
+  - vendor: Radian LLC
+    maintainer: &author Radian LLC <contact+sleeping-beauty@radian.codes>
+    description: &description Webserver auto-sleep for containerized environments
+    license: &license MIT
+    formats:
+      - apk
+      - deb
+      - rpm
+snapcrafts:
+  - publish: false
+    summary: *description
+    description: *description
+    confinement: classic
+    license: *license
+dockers:
+  - image_templates:
+      - "radian-software/sleeping-beauty:latest"
+      - "radian-software/sleeping-beauty:{{ .Tag }}"
+checksum:
+  name_template: "checksums.txt"
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
