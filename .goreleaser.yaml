@@ -19,8 +19,8 @@ snapcrafts:
     license: *license
 dockers:
   - image_templates:
-      - "radian-software/sleeping-beauty:latest"
-      - "radian-software/sleeping-beauty:{{ .Tag }}"
+      - "radiansoftware/sleeping-beauty:latest"
+      - "radiansoftware/sleeping-beauty:{{ .Tag }}"
 checksum:
   name_template: "checksums.txt"
 snapshot:
