@@ -53,6 +53,7 @@ func Test_Basics(t *testing.T) {
 		assert.Contains(t, string(curlStdout), "Directory listing")
 		time.Sleep(2 * time.Second)
 	}
+	killNicely(t, sb.Process)
 	sbStdout, err := io.ReadAll(sbPipe)
 	assert.NoError(t, err)
 	numStarts := strings.Count(string(sbStdout), "Serving HTTP")
