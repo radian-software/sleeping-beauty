@@ -1,7 +1,7 @@
 package cases
 
 import (
-	"io"
+	"bytes"
 	"os"
 	"os/exec"
 	"strings"
@@ -38,24 +38,22 @@ func Test_Basics(t *testing.T) {
 		"SLEEPING_BEAUTY_COMMAND_PORT=6666",
 		"SLEEPING_BEAUTY_LISTEN_PORT=4444",
 	)
-	sbPipe, err := sb.StdoutPipe()
-	assert.NoError(t, err)
+	sbStdout := bytes.Buffer{}
+	sb.Stdout = &sbStdout
 	assert.NoError(t, sb.Start())
 	defer killNicely(t, sb.Process)
 	time.Sleep(500 * time.Millisecond)
 	for i := 0; i < 3; i++ {
-		curl := exec.Command("curl", "http://localhost:4444")
-		curlPipe, err := curl.StdoutPipe()
-		assert.NoError(t, err)
-		assert.NoError(t, curl.Run())
-		curlStdout, err := io.ReadAll(curlPipe)
-		assert.NoError(t, err)
-		assert.Contains(t, string(curlStdout), "Directory listing")
+		curl := exec.Command("curl", "-sS", "http://localhost:4444")
+		curlStdout := bytes.Buffer{}
+		curl.Stdout = &curlStdout
+		curlStderr := bytes.Buffer{}
+		curl.Stderr = &curlStderr
+		assert.NoError(t, curl.Run(), "stderr: %s", curlStderr.String())
+		assert.Contains(t, curlStdout.String(), "Directory listing")
 		time.Sleep(2 * time.Second)
 	}
 	killNicely(t, sb.Process)
-	sbStdout, err := io.ReadAll(sbPipe)
-	assert.NoError(t, err)
-	numStarts := strings.Count(string(sbStdout), "Serving HTTP")
+	numStarts := strings.Count(sbStdout.String(), "Serving HTTP")
 	assert.Equal(t, 3, numStarts)
 }
