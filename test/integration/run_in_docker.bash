@@ -16,5 +16,8 @@ if (("$#" == 0)); then
     set -- /src/test/integration/run.bash
 fi
 
-docker run -it --rm --init -v "${repo_dir}:/src:ro" \
+mkdir -p "${repo_dir}/.cache/gopkg"
+docker run -it --rm --init -v "${repo_dir}:/src:ro" -w /src \
+    -v "${repo_dir}/.cache/gopkg:/go-cache" \
+    --entrypoint=/src/test/integration/pid2.bash \
     sleeping-beauty-integration-test:latest "$@"
