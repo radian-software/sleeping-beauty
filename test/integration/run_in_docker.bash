@@ -17,4 +17,4 @@ if (("$#" == 0)); then
 fi
 
 docker run -it --rm --init -v "${repo_dir}:/src:ro" \
-    sleeping-beauty-integration-test:latest /src/test/integration/run.bash "$@"
+    sleeping-beauty-integration-test:latest "$@"
