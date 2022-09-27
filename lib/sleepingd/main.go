@@ -75,11 +75,15 @@ func Main(opts *Options) error {
 			dms.DelayCh <- struct{}{}
 		}
 	}
+	activityCallback := func() {
+		dms.DelayCh <- struct{}{}
+	}
 	proxy, err := NewProxy(&ProxyOptions{
 		Protocol:              "tcp",
 		ListenAddr:            fmt.Sprintf("%s:%d", opts.ListenHost, opts.ListenPort),
 		UpstreamAddr:          fmt.Sprintf("127.0.0.1:%d", opts.CommandPort),
 		NewConnectionCallback: newConnCallback,
+		DataCallback:          activityCallback,
 	})
 	if err != nil {
 		return err

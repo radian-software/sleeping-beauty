@@ -25,6 +25,11 @@ type ProxyOptions struct {
 	// track metrics on incoming connections, or to ensure that
 	// the upstream is available before traffic is proxied to it.
 	NewConnectionCallback func()
+	// DataCallback is a function of no arguments, optional. If
+	// provided, then it is called synchronously when data is to
+	// be copied either to or from the backend server. This could
+	// be used to track metrics on network activity.
+	DataCallback func()
 }
 
 // Proxy is a struct returned by NewProxy, that represents a running
@@ -57,10 +62,26 @@ func NewProxy(opts *ProxyOptions) (*Proxy, error) {
 					_, _ = c.Write([]byte(fmt.Sprintf("failed to dial upstream %s: %s\n", opts.UpstreamAddr, err)))
 					return
 				}
+				activityCh := make(chan struct{})
 				go func() {
-					_, _ = io.Copy(uc, c)
+					for {
+						<-activityCh
+						if opts.DataCallback != nil {
+							opts.DataCallback()
+						}
+					}
 				}()
-				_, _ = io.Copy(c, uc)
+				doneCh := make(chan struct{})
+				go func() {
+					_ = CopyWithActivity(uc, c, activityCh)
+					doneCh <- struct{}{}
+				}()
+				go func() {
+					_ = CopyWithActivity(c, uc, activityCh)
+					doneCh <- struct{}{}
+				}()
+				<-doneCh
+				<-doneCh
 				_ = uc.Close()
 				_ = c.Close()
 			}(conn)
