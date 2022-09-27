@@ -9,5 +9,9 @@ chown docker:docker /go-cache
 mkdir -p /home/docker/go/pkg
 ln -sT /go-cache /home/docker/go/pkg/mod
 
+tee /etc/sudoers.d/90-docker >/dev/null <<"EOF"
+%sudo ALL=(ALL:ALL) NOPASSWD: ALL
+EOF
+
 runuser -u docker touch /home/docker/.sudo_as_admin_successful
 exec runuser -u docker -- "$@"
