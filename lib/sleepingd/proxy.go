@@ -71,17 +71,10 @@ func NewProxy(opts *ProxyOptions) (*Proxy, error) {
 						}
 					}
 				}()
-				doneCh := make(chan struct{})
-				go func() {
-					_ = CopyWithActivity(uc, c, activityCh)
-					doneCh <- struct{}{}
-				}()
 				go func() {
 					_ = CopyWithActivity(c, uc, activityCh)
-					doneCh <- struct{}{}
 				}()
-				<-doneCh
-				<-doneCh
+				_ = CopyWithActivity(uc, c, activityCh)
 				_ = uc.Close()
 				_ = c.Close()
 			}(conn)
