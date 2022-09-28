@@ -135,7 +135,7 @@ func Test_DeadMansSwitch(t *testing.T) {
 			for _, phase := range test.Phases {
 				assert.NotZero(t, phase.Name, "bad test")
 				if phase.SendDelay {
-					s.DelayCh <- struct{}{}
+					s.Delay()
 					continue
 				}
 				if phase.Duration > 0 {
