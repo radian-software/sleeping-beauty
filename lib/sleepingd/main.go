@@ -37,19 +37,16 @@ func Main(opts *Options) error {
 		<-dms.ExpireCh
 		Must(proc.EnsureStopped())
 	}()
-	newConnCallback := func() {
+	activityCallback := func() {
 		Must(proc.EnsureStarted())
 		Must(proc.EnsureListening(opts.CommandPort))
-		dms.Delay()
-	}
-	activityCallback := func() {
 		dms.Delay()
 	}
 	proxy, err := NewProxy(&ProxyOptions{
 		Protocol:              "tcp",
 		ListenAddr:            fmt.Sprintf("%s:%d", opts.ListenHost, opts.ListenPort),
 		UpstreamAddr:          fmt.Sprintf("127.0.0.1:%d", opts.CommandPort),
-		NewConnectionCallback: newConnCallback,
+		NewConnectionCallback: activityCallback,
 		DataCallback:          activityCallback,
 	})
 	if err != nil {
