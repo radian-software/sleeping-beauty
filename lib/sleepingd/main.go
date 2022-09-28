@@ -33,50 +33,18 @@ func Main(opts *Options) error {
 		TerminationGracePeriod: 5 * time.Second,
 		EnsureListeningTimeout: 5 * time.Second,
 	}
-	dms := (*DeadMansSwitch)(nil)
-	dmsLock := sync.Mutex{}
+	dms := NewDeadMansSwitch(time.Duration(opts.TimeoutSeconds) * time.Second)
+	go func() {
+		<-dms.ExpireCh
+		Must(proc.EnsureStopped())
+	}()
 	newConnCallback := func() {
-		dmsLock.Lock()
-		defer dmsLock.Unlock()
 		Must(proc.EnsureStarted())
 		Must(proc.EnsureListening(opts.CommandPort))
-		if dms == nil || dms.Expired {
-			// If dms is nil then it means no timer is
-			// running currently. If dms is not nil but
-			// dms.Expired is true, then it means that an
-			// event is about to be (or already has been)
-			// sent to the ExpireCh, but since we acquired
-			// the lock, we know that the process has not
-			// been stopped from the goroutine below.
-			// Therefore, we can set dms.Expired back to
-			// false to cancel the process stopping,
-			// before setting a new timer.
-			if dms != nil && dms.Expired {
-				dms.Expired = false
-			}
-			dms = NewDeadMansSwitch(time.Duration(opts.TimeoutSeconds) * time.Second)
-			go func() {
-				<-dms.ExpireCh
-				dmsLock.Lock()
-				defer dmsLock.Unlock()
-				// Since ExpireCh is messaged after
-				// dms.Expired is set, this condition
-				// should normally always be true. It
-				// will be canceled in the case that
-				// dms.Expired was set back to false
-				// by the code in the parent goroutine
-				// above.
-				if dms.Expired {
-					Must(proc.EnsureStopped())
-					dms = nil
-				}
-			}()
-		} else {
-			dms.DelayCh <- struct{}{}
-		}
+		dms.Delay()
 	}
 	activityCallback := func() {
-		dms.DelayCh <- struct{}{}
+		dms.Delay()
 	}
 	proxy, err := NewProxy(&ProxyOptions{
 		Protocol:              "tcp",
