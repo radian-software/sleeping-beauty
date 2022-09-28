@@ -2,7 +2,6 @@ package sleepingd
 
 import (
 	"fmt"
-	"io"
 	"net"
 )
 
