@@ -14,6 +14,17 @@ RELEASE_NOTES = cat CHANGELOG.md | sed '/^\#\#/,$$!d' | tail -n+2 | sed -n '/^\#
 build:
 	go build ./cmd/sleepingd
 
+.PHONY: test-unit
+test-unit:
+	go test ./lib/sleepingd
+
+.PHONY: test-integration
+test-integration: build
+	./test/integration/run_in_docker.bash ./test/integration/run.bash
+
+.PHONY: test
+test: test-unit test-integration
+
 .PHONY: version
 version:
 	@echo "Current version is $(VERSION) according to CHANGELOG.md"

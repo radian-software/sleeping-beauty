@@ -78,3 +78,8 @@ may be convenient for copying the binary into your Dockerfile.
 Alternatively, you may compile your own binary. This is done by
 cloning this repository at the desired revision, and running `make
 build`. You have to have Go installed.
+
+## Run tests
+
+Execute `make test-unit` (requires Go) or `make test-integration`
+(requires Docker) or `make test` to do both.
