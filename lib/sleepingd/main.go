@@ -36,6 +36,7 @@ func Main(opts *Options) error {
 	go func() {
 		<-dms.ExpireCh
 		Must(proc.EnsureStopped())
+		Must(proc.EnsureNotListening(opts.CommandPort))
 	}()
 	activityCallback := func() {
 		Must(proc.EnsureStarted())
