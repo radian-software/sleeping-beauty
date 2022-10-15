@@ -84,3 +84,27 @@ func (sm *SubprocessManager) EnsureListening(port int) error {
 		return fmt.Errorf("process did not start listening on port %d", port)
 	}
 }
+
+func (sm *SubprocessManager) EnsureNotListening(port int) error {
+	if !sm.listening {
+		return nil // already not listening
+	}
+	done := make(chan error)
+	go func() {
+		for {
+			_, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+			if err != nil {
+				done <- nil
+				return
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
+	select {
+	case err := <-done:
+		sm.listening = false
+		return err
+	case <-time.NewTimer(sm.EnsureListeningTimeout).C:
+		return fmt.Errorf("process did not stop listening on port %d", port)
+	}
+}
