@@ -4,7 +4,7 @@ import "io"
 
 func CopyWithActivity(dst io.Writer, src io.Reader, activityCh chan<- struct{}) error {
 	buf := make([]byte, 32*1024)
-	// Implementation baesd on copyBuffer in io from stdlib
+	// Implementation based on copyBuffer in io from stdlib
 	for {
 		nr, err := src.Read(buf)
 		if err == io.EOF {
