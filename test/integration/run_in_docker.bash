@@ -22,8 +22,13 @@ if (("$#" == 0)); then
     set -- bash
 fi
 
+it=()
+if [[ -t 1 ]]; then
+    it+=(-it)
+fi
+
 mkdir -p "${repo_dir}/.cache/gopkg"
-docker run -it --rm --init -v "${repo_dir}:/src:ro" -w /src \
+docker run "${it[@]}" --rm --init -v "${repo_dir}:/src:ro" -w /src \
     -v "${repo_dir}/.cache/gopkg:/go-cache" -e DOCKER=1 \
     --entrypoint=/src/test/integration/pid2.bash \
     sleeping-beauty-integration-test:latest "$@"
