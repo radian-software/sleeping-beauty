@@ -21,6 +21,6 @@ jobs:
           docker pull "${image}"
           docker tag "${image}" sleeping-beauty-integration-test:latest
       - name: Unit tests
-        run: "./docker/run_in_docker.bash sleeping-beauty-integration-test:latest make test-unit"
+        run: "make test-unit"
       - name: Integration tests
         run: "make test-integration"

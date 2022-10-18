@@ -14,14 +14,14 @@ RELEASE_NOTES = cat CHANGELOG.md | sed '/^\#\#/,$$!d' | tail -n+2 | sed -n '/^\#
 build:
 	go build ./cmd/sleepingd
 
+# For the test commands, use DOCKER=0 to skip Docker invocation.
 .PHONY: test-unit
 test-unit:
-	go test ./lib/sleepingd $(TEST_FLAGS)
+	./docker/run_in_docker.bash go test ./lib/sleepingd $(TEST_FLAGS)
 
 .PHONY: test-integration
 test-integration: build
-	./docker/run_in_docker.bash sleeping-beauty-integration-test:latest \
-		./test/integration/run.bash $(TEST_FLAGS)
+	./docker/run_in_docker.bash ./test/integration/run.bash $(TEST_FLAGS)
 
 .PHONY: test
 test: test-unit test-integration
