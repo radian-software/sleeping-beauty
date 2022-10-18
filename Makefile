@@ -1,4 +1,4 @@
-VERSION := $(shell cat CHANGELOG.md | grep '^##' | head -n1 | tr -d '# ')
+VERSION := $(shell cat CHANGELOG.md | grep '^\#\#' | head -n1 | tr -d '\# ')
 
 # Remove blank lines from beginning and end of file
 # https://unix.stackexchange.com/a/552198
