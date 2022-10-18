@@ -16,10 +16,15 @@ docker() {
     fi
 }
 
-repo_dir="$(cd "$(dirname "$0")/../.." && pwd)"
+repo_dir="$(cd "$(dirname "$0")/.." && pwd)"
 
 if (("$#" == 0)); then
-    set -- bash
+    echo >&2 "usage: run_in_docker.bash IMAGE[:TAG] ARG..."
+    exit 1
+fi
+
+if (("$#" == 1)); then
+    set -- "$1" bash
 fi
 
 it=()
@@ -30,5 +35,4 @@ fi
 mkdir -p "${repo_dir}/.cache/gopkg"
 docker run "${it[@]}" --rm --init -v "${repo_dir}:/src:ro" -w /src \
     -v "${repo_dir}/.cache/gopkg:/go-cache" -e DOCKER=1 \
-    --entrypoint=/src/test/integration/pid2.bash \
-    sleeping-beauty-integration-test:latest "$@"
+    --entrypoint=/src/docker/pid2.bash "$@"

@@ -63,5 +63,5 @@ func Test_Basics(t *testing.T) {
 	assert.Equal(t, 3, numDaemonStarts)
 	numDaemonStops := strings.Count(sbStderr.String(), "stopping subprocess")
 	assert.Equal(t, 3, numDaemonStops)
-	assert.Contains(t, sbStderr.String(), "listening on 0.0.0.0:4444, proxying to 127.0.0.1:6666 with /usr/bin/bash command line: python3 -u -m http.server -b 127.0.0.1 -d / 6666")
+	assert.Contains(t, sbStderr.String(), "listening on 0.0.0.0:4444, proxying to 127.0.0.1:6666 with /bin/bash command line: python3 -u -m http.server -b 127.0.0.1 -d / 6666")
 }

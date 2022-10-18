@@ -20,7 +20,8 @@ test-unit:
 
 .PHONY: test-integration
 test-integration: build
-	./test/integration/run_in_docker.bash ./test/integration/run.bash $(TEST_FLAGS)
+	./docker/run_in_docker.bash sleeping-beauty-integration-test:latest \
+		./test/integration/run.bash $(TEST_FLAGS)
 
 .PHONY: test
 test: test-unit test-integration

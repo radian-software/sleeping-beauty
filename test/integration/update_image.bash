@@ -10,7 +10,7 @@ ts="$(date +%s)"
 
 if [[ "$#" -eq 0 || "$1" != "-n" ]]; then
     docker build . -t sleeping-beauty-integration-test:latest
-    ./run_in_docker.bash ./test/integration/run.bash
+    ../../docker/run_in_docker.bash sleeping-beauty-integration-test:latest ./test/integration/run.bash
 fi
 
 image="ghcr.io/radian-software/sleeping-beauty-integration-test-ci:${ts}"
