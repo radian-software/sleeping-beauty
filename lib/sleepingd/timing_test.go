@@ -132,6 +132,7 @@ func Test_DeadMansSwitch(t *testing.T) {
 			assert.NotZero(t, test.Timeout, "bad test")
 			t.Parallel()
 			s := NewDeadMansSwitch(test.Timeout)
+			s.Delay()
 			for _, phase := range test.Phases {
 				assert.NotZero(t, phase.Name, "bad test")
 				if phase.SendDelay {
