@@ -1,7 +1,6 @@
 package sleepingd
 
 import (
-	"fmt"
 	"net"
 )
 
