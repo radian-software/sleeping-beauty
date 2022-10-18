@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -32,15 +33,20 @@ func Main(opts *Options) error {
 		TerminationGracePeriod: 5 * time.Second,
 		EnsureListeningTimeout: 5 * time.Second,
 	}
+	lock := sync.Mutex{}
 	dms := NewDeadMansSwitch(time.Duration(opts.TimeoutSeconds) * time.Second)
 	go func() {
 		for {
 			<-dms.ExpireCh
+			lock.Lock()
+			defer lock.Unlock()
 			Must(proc.EnsureStopped())
 			Must(proc.EnsureNotListening(opts.CommandPort))
 		}
 	}()
 	activityCallback := func() {
+		lock.Lock()
+		defer lock.Unlock()
 		Must(proc.EnsureStarted())
 		Must(proc.EnsureListening(opts.CommandPort))
 		dms.Delay()
@@ -50,7 +56,7 @@ func Main(opts *Options) error {
 		ListenAddr:            fmt.Sprintf("%s:%d", opts.ListenHost, opts.ListenPort),
 		UpstreamAddr:          fmt.Sprintf("127.0.0.1:%d", opts.CommandPort),
 		NewConnectionCallback: activityCallback,
-		DataCallback:          activityCallback,
+		DataCallback:          dms.Delay,
 	})
 	if err != nil {
 		return err
