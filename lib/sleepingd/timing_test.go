@@ -155,3 +155,13 @@ func Test_DeadMansSwitch(t *testing.T) {
 		})
 	}
 }
+
+func Test_DeadMansSwitchDeadlock(t *testing.T) {
+	// Regression test. The last s.Delay() used to deadlock
+	// because it blocked on writing to ExpireCh.
+	s := NewDeadMansSwitch(100 * time.Millisecond)
+	s.Delay()
+	time.Sleep(200 * time.Millisecond)
+	s.Delay()
+	s.Delay() // this should return successfully, and not deadlock
+}
