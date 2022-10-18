@@ -19,7 +19,7 @@ docker() {
 repo_dir="$(cd "$(dirname "$0")/../.." && pwd)"
 
 if (("$#" == 0)); then
-    set -- /src/test/integration/run.bash
+    set -- bash
 fi
 
 mkdir -p "${repo_dir}/.cache/gopkg"
