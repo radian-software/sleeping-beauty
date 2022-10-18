@@ -58,7 +58,7 @@ func NewProxy(opts *ProxyOptions) (*Proxy, error) {
 				}
 				uc, err := net.Dial(opts.Protocol, opts.UpstreamAddr)
 				if err != nil {
-					_, _ = c.Write([]byte(fmt.Sprintf("failed to dial upstream %s: %s\n", opts.UpstreamAddr, err)))
+					LogError(err)
 					return
 				}
 				activityCh := make(chan struct{})
@@ -71,11 +71,11 @@ func NewProxy(opts *ProxyOptions) (*Proxy, error) {
 					}
 				}()
 				go func() {
-					_ = CopyWithActivity(c, uc, activityCh)
+					LogError(CopyWithActivity(c, uc, activityCh))
 				}()
-				_ = CopyWithActivity(uc, c, activityCh)
-				_ = uc.Close()
-				_ = c.Close()
+				LogError(CopyWithActivity(uc, c, activityCh))
+				LogError(uc.Close())
+				LogError(c.Close())
 			}(conn)
 		}
 	}()
