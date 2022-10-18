@@ -56,7 +56,7 @@ func Test_Proxy_NoUpstream(t *testing.T) {
 	assert.NoError(t, err)
 	data, err := io.ReadAll(conn)
 	assert.NoError(t, err)
-	assert.Equal(t, "failed to dial upstream 127.0.0.1:7000: dial tcp 127.0.0.1:7000: connect: connection refused\n", string(data))
+	assert.Empty(t, data)
 }
 
 func getEchoserver(t *testing.T, protocol string, addr string) net.Listener {
