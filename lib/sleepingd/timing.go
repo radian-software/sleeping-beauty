@@ -19,6 +19,10 @@ type DeadMansSwitch struct {
 // you get notified automatically some time after a process stops
 // sending events. If you invoke Delay again after the ExpireCh
 // receives an event, another event will be scheduled for the future.
+//
+// To avoid deadlock, ensure that you always have a goroutine waiting
+// on events from ExpireCh, since Delay may block on a write to
+// ExpireCh.
 func NewDeadMansSwitch(timeout time.Duration) *DeadMansSwitch {
 	delayCh := make(chan struct{})
 	expireCh := make(chan struct{})

@@ -38,13 +38,15 @@ func Main(opts *Options) error {
 	go func() {
 		for {
 			<-dms.ExpireCh
-			lock.Lock()
-			defer lock.Unlock()
-			Must(proc.EnsureStopped())
-			Must(proc.EnsureNotListening(opts.CommandPort))
+			go func() {
+				lock.Lock()
+				defer lock.Unlock()
+				Must(proc.EnsureStopped())
+				Must(proc.EnsureNotListening(opts.CommandPort))
+			}()
 		}
 	}()
-	activityCallback := func() {
+	newConnCallback := func() {
 		lock.Lock()
 		defer lock.Unlock()
 		Must(proc.EnsureStarted())
@@ -55,7 +57,7 @@ func Main(opts *Options) error {
 		Protocol:              "tcp",
 		ListenAddr:            fmt.Sprintf("%s:%d", opts.ListenHost, opts.ListenPort),
 		UpstreamAddr:          fmt.Sprintf("127.0.0.1:%d", opts.CommandPort),
-		NewConnectionCallback: activityCallback,
+		NewConnectionCallback: newConnCallback,
 		DataCallback:          dms.Delay,
 	})
 	if err != nil {
