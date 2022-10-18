@@ -11,6 +11,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Pull image for integration tests
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         run: |
           image="$(< ./test/integration/ci_image)"
           echo "${GITHUB_TOKEN}" | docker login ghcr.io -u radian-software --password-stdin
