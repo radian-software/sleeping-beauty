@@ -1,50 +1,65 @@
 package sleepingd
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 // DeadMansSwitch is a struct used for getting automatically notified
 // some time after a process stops sending events. See
 // GetDeadMansSwitch for more explanation of usage.
 type DeadMansSwitch struct {
-	delayCh  chan<- struct{}
-	ExpireCh <-chan struct{}
+	timeout   time.Duration
+	precision time.Duration
+	callback  func()
+
+	lock     *sync.Mutex
+	lastPing time.Time
+	active   bool
 }
 
 // NewDeadMansSwitch returns a DeadMansSwitch struct. After getting
-// the struct back, invoke Delay to start the timer. Then ExpireCh
-// will receive an event automatically after the provided timeout.
-// However, at any time you can invoke the Delay method again to
-// re-set this timeout to be from the current time rather than from
-// when the NewDeadMansSwitch was returned. In other words, this lets
-// you get notified automatically some time after a process stops
-// sending events. If you invoke Delay again after the ExpireCh
-// receives an event, another event will be scheduled for the future.
-func NewDeadMansSwitch(timeout time.Duration) *DeadMansSwitch {
-	delayCh := make(chan struct{})
-	expireCh := make(chan struct{})
-	dms := DeadMansSwitch{
-		delayCh:  delayCh,
-		ExpireCh: expireCh,
+// the struct back, invoke Ping to start the timer. Then the provided
+// callback will be invoked (on a separate goroutine) after the
+// provided timeout. However, at any time you can invoke the Ping
+// method again to re-set this timeout to be from the current time
+// rather than from when the NewDeadMansSwitch was returned. In other
+// words, this lets you get notified automatically some time after a
+// process stops sending events. If you invoke Ping again after the
+// callback is already invoked, another event will be scheduled for
+// the future. The callback is not necessarily invoked at the exact
+// specified timeout, but can be at most precision later.
+func NewDeadMansSwitch(timeout time.Duration, precision time.Duration, callback func()) *DeadMansSwitch {
+	return &DeadMansSwitch{
+		timeout:   timeout,
+		precision: precision,
+		callback:  callback,
+		lock:      &sync.Mutex{},
+		// value of lastPing is ignored when active is false
+		lastPing: time.Now(),
+		active:   false,
 	}
-	var timer *time.Timer
-	go func() {
-		<-delayCh
-		timer = time.NewTimer(timeout)
-		for {
-			select {
-			case <-delayCh:
-				if !timer.Stop() {
-					<-timer.C
-				}
-				timer.Reset(timeout)
-			case <-timer.C:
-				expireCh <- struct{}{}
-			}
-		}
-	}()
-	return &dms
 }
 
-func (dms *DeadMansSwitch) Delay() {
-	dms.delayCh <- struct{}{}
+// Reschedule the invocation of the DeadMansSwitch callback to happen
+// later, or schedule it to happen again in the future.
+func (dms *DeadMansSwitch) Ping() {
+	dms.lock.Lock()
+	dms.lastPing = time.Now()
+	if !dms.active {
+		time.AfterFunc(dms.precision, dms.check)
+		dms.active = true
+	}
+	dms.lock.Unlock()
+}
+
+func (dms *DeadMansSwitch) check() {
+	dms.lock.Lock()
+	if dms.active && time.Now().Sub(dms.lastPing) >= dms.timeout {
+		go dms.callback()
+		dms.active = false
+	} else {
+		time.AfterFunc(dms.precision, dms.check)
+	}
+	dms.lock.Unlock()
 }

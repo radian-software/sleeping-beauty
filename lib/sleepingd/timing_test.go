@@ -131,19 +131,22 @@ func Test_DeadMansSwitch(t *testing.T) {
 			assert.NotZero(t, test.ShouldExpireDuring, "bad test")
 			assert.NotZero(t, test.Timeout, "bad test")
 			t.Parallel()
-			s := NewDeadMansSwitch(test.Timeout)
-			s.Delay()
+			expireCh := make(chan struct{})
+			s := NewDeadMansSwitch(test.Timeout, 10*time.Millisecond, func() {
+				expireCh <- struct{}{}
+			})
+			s.Ping()
 			for _, phase := range test.Phases {
 				assert.NotZero(t, phase.Name, "bad test")
 				if phase.SendDelay {
-					s.Delay()
+					s.Ping()
 					continue
 				}
 				if phase.Duration > 0 {
 					select {
 					case <-time.NewTimer(phase.Duration).C:
 						// Proceed to next phase
-					case <-s.ExpireCh:
+					case <-expireCh:
 						assert.Equal(t, test.ShouldExpireDuring, phase.Name)
 						return
 					}
@@ -157,11 +160,11 @@ func Test_DeadMansSwitch(t *testing.T) {
 }
 
 func Test_DeadMansSwitchDeadlock(t *testing.T) {
-	// Regression test. The last s.Delay() used to deadlock
-	// because it blocked on writing to ExpireCh.
-	s := NewDeadMansSwitch(100 * time.Millisecond)
-	s.Delay()
+	// Regression test. The old implementation of s.Ping() used to
+	// deadlock because it blocked on writing to a channel.
+	s := NewDeadMansSwitch(100*time.Millisecond, 10*time.Millisecond, func() {})
+	s.Ping()
 	time.Sleep(200 * time.Millisecond)
-	s.Delay()
-	s.Delay() // this should return successfully, and not deadlock
+	s.Ping()
+	s.Ping() // this should return successfully, and not deadlock
 }

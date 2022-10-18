@@ -34,31 +34,26 @@ func Main(opts *Options) error {
 		EnsureListeningTimeout: 5 * time.Second,
 	}
 	lock := sync.Mutex{}
-	dms := NewDeadMansSwitch(time.Duration(opts.TimeoutSeconds) * time.Second)
-	go func() {
-		for {
-			<-dms.ExpireCh
-			go func() {
-				lock.Lock()
-				defer lock.Unlock()
-				Must(proc.EnsureStopped())
-				Must(proc.EnsureNotListening(opts.CommandPort))
-			}()
-		}
-	}()
+	expiryCallback := func() {
+		lock.Lock()
+		defer lock.Unlock()
+		Must(proc.EnsureStopped())
+		Must(proc.EnsureNotListening(opts.CommandPort))
+	}
+	dms := NewDeadMansSwitch(time.Duration(opts.TimeoutSeconds)*time.Second, 1*time.Second, expiryCallback)
 	newConnCallback := func() {
 		lock.Lock()
 		defer lock.Unlock()
 		Must(proc.EnsureStarted())
 		Must(proc.EnsureListening(opts.CommandPort))
-		dms.Delay()
+		dms.Ping()
 	}
 	proxy, err := NewProxy(&ProxyOptions{
 		Protocol:              "tcp",
 		ListenAddr:            fmt.Sprintf("%s:%d", opts.ListenHost, opts.ListenPort),
 		UpstreamAddr:          fmt.Sprintf("127.0.0.1:%d", opts.CommandPort),
 		NewConnectionCallback: newConnCallback,
-		DataCallback:          dms.Delay,
+		DataCallback:          dms.Ping,
 	})
 	if err != nil {
 		return err
