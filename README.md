@@ -79,6 +79,15 @@ Alternatively, you may compile your own binary. This is done by
 cloning this repository at the desired revision, and running `make
 build`. You have to have Go installed.
 
+## Containerization
+
+If running Sleeping Beauty in a containerized environment (e.g.
+Docker) then it is your responsibility to supply an [appropriate
+pid1](https://blog.phusion.nl/2015/01/20/docker-and-the-pid-1-zombie-reaping-problem/)
+to ensure that zombie processes are reaped properly. Modern versions
+of Docker can accomplish this transparently if you pass `--init` to
+`docker run`.
+
 ## Run tests
 
 Execute `make test-unit` (requires Go) or `make test-integration`
