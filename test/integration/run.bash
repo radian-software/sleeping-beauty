@@ -6,4 +6,4 @@ repo_dir="$(cd "$(dirname "$0")/../.." && pwd)"
 export PATH="${repo_dir}:$PATH"
 
 cd "$(dirname "$0")"
-go test ./cases -v
+go test ./cases "$@"

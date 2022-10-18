@@ -16,11 +16,11 @@ build:
 
 .PHONY: test-unit
 test-unit:
-	go test ./lib/sleepingd
+	go test ./lib/sleepingd $(TEST_FLAGS)
 
 .PHONY: test-integration
 test-integration: build
-	./test/integration/run_in_docker.bash ./test/integration/run.bash
+	./test/integration/run_in_docker.bash ./test/integration/run.bash $(TEST_FLAGS)
 
 .PHONY: test
 test: test-unit test-integration
