@@ -46,7 +46,7 @@ func Test_Basics(t *testing.T) {
 	defer killNicely(t, sb.Process)
 	time.Sleep(500 * time.Millisecond)
 	for i := 0; i < 3; i++ {
-		curl := exec.Command("curl", "-sS", "http://127.0.0.1:4444")
+		curl := exec.Command("curl", "-m5", "-sS", "http://127.0.0.1:4444")
 		curlStdout := bytes.Buffer{}
 		curl.Stdout = &curlStdout
 		curlStderr := bytes.Buffer{}
