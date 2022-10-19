@@ -148,7 +148,7 @@ func Test_Proxy_UpstreamClose(t *testing.T) {
 	assert.NoError(t, err)
 	closed := make(chan error)
 	go func() {
-		buf := []byte{}
+		buf := make([]byte, 1024)
 		for {
 			_, err := conn.Read(buf)
 			if err != nil {
