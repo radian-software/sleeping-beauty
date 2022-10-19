@@ -2,6 +2,7 @@ package cases
 
 import (
 	"bytes"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -64,4 +65,51 @@ func Test_Basics(t *testing.T) {
 	numDaemonStops := strings.Count(sbStderr.String(), "stopping subprocess")
 	assert.Equal(t, 3, numDaemonStops)
 	assert.Contains(t, sbStderr.String(), "listening on 0.0.0.0:4444, proxying to 127.0.0.1:6666 with /bin/bash command line: python3 -u -m http.server -b 127.0.0.1 -d / 6666")
+}
+
+func Test_Keepalive(t *testing.T) {
+	// This is a regression test. In previous versions of
+	// sleepingd, if the server returned a 'connection:
+	// keep-alive' header, then the client would naturally hold
+	// its end of the connection open for a few seconds. But this
+	// meant that the server connection would be EOF'd before the
+	// client closed its side, which triggered a race condition in
+	// sleepingd that occurred with that ordering.
+	//
+	// To ensure that we get a keep-alive response, we use
+	// gunicorn with >1 threads.
+	sb := exec.Command("sleepingd")
+	sb.Env = append(
+		os.Environ(),
+		"SLEEPING_BEAUTY_COMMAND=python3 -u -m gunicorn --chdir ../resources app:app -b 127.0.0.1:6666 --threads 2",
+		"SLEEPING_BEAUTY_TIMEOUT_SECONDS=2",
+		"SLEEPING_BEAUTY_COMMAND_PORT=6666",
+		"SLEEPING_BEAUTY_LISTEN_PORT=4444",
+	)
+	sbOutput := bytes.Buffer{}
+	sb.Stdout = &sbOutput
+	sb.Stderr = &sbOutput
+	assert.NoError(t, sb.Start())
+	defer killNicely(t, sb.Process)
+	time.Sleep(500 * time.Millisecond)
+	curl := exec.Command("curl", "-m5", "-sS", "http://127.0.0.1:4444/about")
+	curlStdout := bytes.Buffer{}
+	curl.Stdout = &curlStdout
+	curlStderr := bytes.Buffer{}
+	curl.Stderr = &curlStderr
+	assert.NoError(t, curl.Run(), "stderr: %s", curlStderr.String())
+	assert.Contains(t, curlStdout.String(), "About this application")
+	// Make sure there is no spurious error like this:
+	// 'read tcp 127.0.0.1:39068->127.0.0.1:5001: use of closed network connection'
+	assert.NotContains(t, sbOutput.String(), "fatal")
+	assert.NotContains(t, sbOutput.String(), "error")
+	// Make sure that we are actually testing what we want to
+	// test, namely by checking for the keep-alive header on the
+	// upstream server.
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+	res, err := client.Get("http://127.0.0.1:6666/about")
+	assert.NoError(t, err)
+	assert.Equal(t, "keep-alive", res.Header.Get("connection"))
 }

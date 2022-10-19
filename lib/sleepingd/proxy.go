@@ -2,6 +2,7 @@ package sleepingd
 
 import (
 	"net"
+	"sync"
 )
 
 // ProxyOptions is used to configure NewProxy, which see for
@@ -69,10 +70,17 @@ func NewProxy(opts *ProxyOptions) (*Proxy, error) {
 						}
 					}
 				}()
+				wg := sync.WaitGroup{}
+				wg.Add(2)
 				go func() {
 					LogError(CopyWithActivity(c, uc, activityCh))
+					wg.Done()
 				}()
-				LogError(CopyWithActivity(uc, c, activityCh))
+				go func() {
+					LogError(CopyWithActivity(uc, c, activityCh))
+					wg.Done()
+				}()
+				wg.Wait()
 				LogError(uc.Close())
 				LogError(c.Close())
 			}(conn)

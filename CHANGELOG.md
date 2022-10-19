@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog].
 
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 
+## 2.0.1
+
+Bugfixes:
+
+* No more spurious errors like `read tcp
+  127.0.0.1:39068->127.0.0.1:5001: use of closed network connection`
+  logged when upstream server finishes sending data before client
+  closes its connection (e.g., due to use of `Connection:
+  keep-alive`).
+
 ## 2.0.0
 
 Significant improvements:
