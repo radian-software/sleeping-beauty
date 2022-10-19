@@ -5,6 +5,17 @@ The format is based on [Keep a Changelog].
 
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 
+## 2.0.2
+
+Bugfixes:
+
+* We now correctly report upstream connection closure to clients, so
+  that they know they need to open a new connection in that case even
+  if they support long-term connection reuse. In practice this makes
+  it so that web browsers such as Chrome and Firefox will not
+  experience hangs when making new requests when working with a
+  backend server that uses `Connection: keep-alive`.
+
 ## 2.0.1
 
 Bugfixes:

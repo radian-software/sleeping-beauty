@@ -106,3 +106,64 @@ func Test_Proxy_NewConnectionChannel(t *testing.T) {
 	time.Sleep(250 * time.Millisecond)
 	assert.Equal(t, 5, numConns)
 }
+
+func getDelayedCloser(t *testing.T, protocol string, addr string, delay time.Duration) net.Listener {
+	l, err := net.Listen(protocol, addr)
+	assert.NoError(t, err)
+	go func() {
+		for {
+			conn, err := l.Accept()
+			if err != nil {
+				return
+			}
+			time.Sleep(delay)
+			err = conn.Close()
+			assert.NoError(t, err)
+		}
+	}()
+	return l
+}
+
+func Test_Proxy_UpstreamClose(t *testing.T) {
+	// This test ensures that when the upstream server closes its
+	// connection, that closure is propagated to clients.
+	// Otherwise we get a bug where smart clients like web
+	// browsers will not realize that the connection is closed
+	// upstream, and will keep trying to send traffic to the
+	// still-open connection, to no avail.
+	closer := getDelayedCloser(t, "tcp", "127.0.0.1:7000", 200*time.Millisecond)
+	defer closer.Close()
+	proxy, err := NewProxy(&ProxyOptions{
+		Protocol:     "tcp",
+		ListenAddr:   "127.0.0.1:7001",
+		UpstreamAddr: "127.0.0.1:7000",
+	})
+	assert.NoError(t, err)
+	defer proxy.Close()
+	conn, err := net.Dial("tcp", "127.0.0.1:7001")
+	assert.NoError(t, err)
+	closed := make(chan error)
+	go func() {
+		buf := []byte{}
+		for {
+			_, err := conn.Read(buf)
+			if err != nil {
+				assert.Equal(t, io.EOF, err)
+				closed <- err
+				return
+			}
+		}
+	}()
+	select {
+	case <-closed:
+		assert.Fail(t, "channel closed ahead of time")
+	case <-time.NewTimer(100 * time.Millisecond).C:
+		// proceed
+	}
+	select {
+	case <-time.NewTimer(200 * time.Millisecond).C:
+		assert.Fail(t, "channel not closed soon enough")
+	case <-closed:
+		// proceed
+	}
+}

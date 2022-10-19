@@ -2,7 +2,6 @@ package sleepingd
 
 import (
 	"net"
-	"sync"
 )
 
 // ProxyOptions is used to configure NewProxy, which see for
@@ -70,19 +69,30 @@ func NewProxy(opts *ProxyOptions) (*Proxy, error) {
 						}
 					}
 				}()
-				wg := sync.WaitGroup{}
-				wg.Add(2)
 				go func() {
-					LogError(CopyWithActivity(c, uc, activityCh))
-					wg.Done()
+					// Copy request from client to
+					// upstream server. Ignore
+					// errors because they may
+					// indicate that client
+					// disconnected unexpectedly
+					// which is not actionable on
+					// our end.
+					_ = CopyWithActivity(uc, c, activityCh)
 				}()
-				go func() {
-					LogError(CopyWithActivity(uc, c, activityCh))
-					wg.Done()
-				}()
-				wg.Wait()
-				LogError(uc.Close())
-				LogError(c.Close())
+				// Copy response from upstream server
+				// to client. Ignore errors, as above.
+				_ = CopyWithActivity(c, uc, activityCh)
+				// Once the upstream server closes its
+				// connection or is unable to send
+				// further data, we should proactively
+				// close both it and the client
+				// connection, to indicate to the
+				// sender that more data cannot be
+				// sent on this connection. Otherwise
+				// smart clients such as web browsers
+				// may attempt to reuse it, and hang.
+				_ = uc.Close()
+				_ = c.Close()
 			}(conn)
 		}
 	}()
