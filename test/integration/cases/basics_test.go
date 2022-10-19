@@ -2,10 +2,12 @@ package cases
 
 import (
 	"bytes"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -112,4 +114,39 @@ func Test_Keepalive(t *testing.T) {
 	res, err := client.Get("http://127.0.0.1:6666/about")
 	assert.NoError(t, err)
 	assert.Equal(t, "keep-alive", res.Header.Get("connection"))
+}
+
+func Test_ConcurrentRequests(t *testing.T) {
+	sb := exec.Command("sleepingd")
+	sb.Env = append(
+		os.Environ(),
+		"SLEEPING_BEAUTY_COMMAND=python3 -u -m gunicorn --chdir ../resources app:app -b 127.0.0.1:6666 --threads 2",
+		"SLEEPING_BEAUTY_TIMEOUT_SECONDS=2",
+		"SLEEPING_BEAUTY_COMMAND_PORT=6666",
+		"SLEEPING_BEAUTY_LISTEN_PORT=4444",
+	)
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+	sbOutput := bytes.Buffer{}
+	sb.Stdout = &sbOutput
+	sb.Stderr = &sbOutput
+	assert.NoError(t, sb.Start())
+	defer killNicely(t, sb.Process)
+	time.Sleep(500 * time.Millisecond)
+	wg := sync.WaitGroup{}
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func() {
+			res, err := client.Get("http://127.0.0.1:4444/about")
+			assert.NoError(t, err)
+			body, err := io.ReadAll(res.Body)
+			assert.NoError(t, err)
+			assert.Contains(t, string(body), "About this application")
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	assert.NotContains(t, sbOutput.String(), "fatal")
+	assert.NotContains(t, sbOutput.String(), "error")
 }
