@@ -150,3 +150,28 @@ func Test_ConcurrentRequests(t *testing.T) {
 	assert.NotContains(t, sbOutput.String(), "fatal")
 	assert.NotContains(t, sbOutput.String(), "error")
 }
+
+func Test_Load(t *testing.T) {
+	sb := exec.Command("sleepingd")
+	sb.Env = append(
+		os.Environ(),
+		"SLEEPING_BEAUTY_COMMAND=python3 -u -m gunicorn --chdir ../resources app:app -b 127.0.0.1:6666 --threads 2",
+		"SLEEPING_BEAUTY_TIMEOUT_SECONDS=2",
+		"SLEEPING_BEAUTY_COMMAND_PORT=6666",
+		"SLEEPING_BEAUTY_LISTEN_PORT=4444",
+	)
+	sbOutput := bytes.Buffer{}
+	sb.Stdout = &sbOutput
+	sb.Stderr = &sbOutput
+	assert.NoError(t, sb.Start())
+	defer killNicely(t, sb.Process)
+	time.Sleep(500 * time.Millisecond)
+	k6 := exec.Command("k6", "run", "../resources/loadtest.js")
+	k6Output := bytes.Buffer{}
+	k6.Stdout = &k6Output
+	k6.Stderr = &k6Output
+	err := k6.Run()
+	assert.NoError(t, err, "output:", k6Output.String())
+	assert.NotContains(t, sbOutput.String(), "fatal")
+	assert.NotContains(t, sbOutput.String(), "error")
+}

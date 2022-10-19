@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+# For load tests (bash resets it by default)
+ulimit -n "$(ulimit -n -H)"
+
 repo_dir="$(cd "$(dirname "$0")/../.." && pwd)"
 export PATH="${repo_dir}:$PATH"
 
