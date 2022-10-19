@@ -116,9 +116,13 @@ func getDelayedCloser(t *testing.T, protocol string, addr string, delay time.Dur
 			if err != nil {
 				return
 			}
-			time.Sleep(delay)
-			err = conn.Close()
-			assert.NoError(t, err)
+			go func(c net.Conn) {
+				c.Write([]byte("hi\n"))
+				time.Sleep(delay)
+				c.Write([]byte("bye\n"))
+				err = c.Close()
+				assert.NoError(t, err)
+			}(conn)
 		}
 	}()
 	return l
