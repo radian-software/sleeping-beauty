@@ -22,7 +22,7 @@ func (sm *SubprocessManager) EnsureStopped() error {
 		return nil // already stopped
 	}
 	fmt.Fprintf(os.Stderr, "sleepingd: stopping subprocess\n")
-	_ = sm.cmd.Process.Signal(syscall.SIGTERM)
+	_ = syscall.Kill(-sm.cmd.Process.Pid, syscall.SIGTERM)
 	waitCh := make(chan error)
 	go func() {
 		waitCh <- sm.cmd.Wait()
@@ -35,7 +35,7 @@ func (sm *SubprocessManager) EnsureStopped() error {
 		}
 		return err
 	case <-time.NewTimer(sm.TerminationGracePeriod).C:
-		_ = sm.cmd.Process.Kill()
+		_ = syscall.Kill(-sm.cmd.Process.Pid, syscall.SIGKILL)
 	}
 	select {
 	case err := <-waitCh:
@@ -55,6 +55,7 @@ func (sm *SubprocessManager) EnsureStarted() error {
 	}
 	fmt.Fprintf(os.Stderr, "sleepingd: starting subprocess\n")
 	sm.cmd = exec.Command(sm.Command[0], sm.Command[1:]...)
+	sm.cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	sm.cmd.Stdout = os.Stdout
 	sm.cmd.Stderr = os.Stderr
 	return sm.cmd.Start()

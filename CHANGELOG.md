@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog].
 
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 
+## 3.0.0
+
+Behavior changes:
+
+* The entire process group is signaled when turning off the webserver,
+  not just the top-level process. This is helpful if your command is
+  using something like bash which swallows signals. However it might
+  be a breaking change so you should test that the new behavior works
+  with your application before upgrading.
+
 ## 2.0.2
 
 Bugfixes:
