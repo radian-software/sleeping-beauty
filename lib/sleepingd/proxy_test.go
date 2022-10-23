@@ -54,6 +54,12 @@ func Test_Proxy_NoUpstream(t *testing.T) {
 	defer proxy.Close()
 	conn, err := net.Dial("tcp", "127.0.0.1:7001")
 	assert.NoError(t, err)
+	// Note: this write will most likely succeed, since we read
+	// the first few bytes into an in-memory buffer before lazily
+	// trying to open a connection to the upstream. That is okay,
+	// we don't attempt to test the results, but it is important
+	// that we actually do attempt to write, otherwise the
+	// connection will never close.
 	_, _ = conn.Write([]byte("is anybody there?\n"))
 	data, err := io.ReadAll(conn)
 	assert.NoError(t, err)
