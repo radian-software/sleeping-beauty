@@ -1,6 +1,7 @@
 package sleepingd
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -94,7 +95,10 @@ func (lc *lazyConn) Write(p []byte) (int, error) {
 func (lc *lazyConn) Close() error {
 	lc.lock.Lock()
 	if lc.conn == nil {
-		lc.conn = &closedConn{}
+		lc.conn = &closedConn{
+			readError:  fmt.Errorf("use of closed connection"),
+			writeError: fmt.Errorf("use of closed connection"),
+		}
 		lc.opened.Done()
 	}
 	lc.lock.Unlock()
