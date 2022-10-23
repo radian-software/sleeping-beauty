@@ -62,6 +62,11 @@ func (lc *lazyConn) ensureOpen() error {
 	if lc.conn == nil {
 		conn, err := lc.connGetter()
 		if err != nil {
+			lc.conn = &closedConn{
+				readError:  err,
+				writeError: err,
+			}
+			lc.opened.Done()
 			return err
 		}
 		lc.conn = conn
