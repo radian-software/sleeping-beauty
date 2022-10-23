@@ -18,19 +18,12 @@ type ProxyOptions struct {
 	UpstreamAddr string
 	// NewConnectionCallback is a function of no arguments,
 	// optional. If provided, then it is called synchronously when
-	// a new connection is accepted, but before the connection is
-	// proxied to the upstream address. This could be used to
-	// track metrics on incoming connections, or to ensure that
-	// the upstream is available before traffic is proxied to it.
+	// a new connection is accepted and some data has been
+	// received from the client, but before the data is proxied to
+	// the upstream address. This could be used to track metrics
+	// on incoming connections, or to ensure that the upstream is
+	// available before traffic is proxied to it.
 	NewConnectionCallback func()
-	// FirstClientDataCallback is a function of no arguments,
-	// optional. If provided, then it is called synchronously the
-	// first time data is to be copied to the backend server. So,
-	// it is called after NewConnectionCallback but before
-	// DataCallback (or in the unusual case that the server sends
-	// data to the client before the converse, it is called after
-	// DataCallback).
-	FirstClientDataCallback func()
 	// DataCallback is a function of no arguments, optional. If
 	// provided, then it is called synchronously when data is to
 	// be copied either to or from the backend server. This could

@@ -49,11 +49,11 @@ func Main(opts *Options) error {
 		dms.Ping()
 	}
 	proxy, err := NewProxy(&ProxyOptions{
-		Protocol:                "tcp",
-		ListenAddr:              fmt.Sprintf("%s:%d", opts.ListenHost, opts.ListenPort),
-		UpstreamAddr:            fmt.Sprintf("127.0.0.1:%d", opts.CommandPort),
-		FirstClientDataCallback: newConnCallback,
-		DataCallback:            dms.Ping,
+		Protocol:              "tcp",
+		ListenAddr:            fmt.Sprintf("%s:%d", opts.ListenHost, opts.ListenPort),
+		UpstreamAddr:          fmt.Sprintf("127.0.0.1:%d", opts.CommandPort),
+		NewConnectionCallback: newConnCallback,
+		DataCallback:          dms.Ping,
 	})
 	if err != nil {
 		return err
