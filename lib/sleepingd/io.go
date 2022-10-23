@@ -7,15 +7,37 @@ import (
 	"sync"
 )
 
+type closedConn struct {
+	readError  error
+	writeError error
+}
+
+func (bp *closedConn) Read(p []byte) (int, error) {
+	return 0, bp.readError
+}
+
+func (bp *closedConn) Write(p []byte) (int, error) {
+	return 0, bp.writeError
+}
+
+func (bp *closedConn) Close() error {
+	return nil
+}
+
+type simpleConn interface {
+	Read(b []byte) (int, error)
+	Write(b []byte) (int, error)
+	Close() error
+}
+
 type lazyConn struct {
 	connGetter  func() (net.Conn, error)
 	openOnRead  bool
 	openOnWrite bool
 
 	opened sync.WaitGroup
-	closed bool
 	lock   sync.Mutex
-	conn   net.Conn
+	conn   simpleConn
 }
 
 type LazyConn interface {
@@ -34,55 +56,49 @@ func NewLazyConn(connGetter func() (net.Conn, error), openOnRead bool, openOnWri
 	return &lc
 }
 
-func (lc *lazyConn) Read(p []byte) (int, error) {
+func (lc *lazyConn) ensureOpen() error {
+	lc.lock.Lock()
+	defer lc.lock.Unlock()
 	if lc.conn == nil {
-		lc.lock.Lock()
-		if lc.closed {
-			return 0, fmt.Errorf("use of closed connection")
-		}
-		if !lc.openOnRead {
-			lc.opened.Wait()
-		}
 		conn, err := lc.connGetter()
 		if err != nil {
-			lc.lock.Unlock()
-			return 0, err
+			return err
 		}
 		lc.conn = conn
 		lc.opened.Done()
-		lc.lock.Unlock()
+	}
+	return nil
+}
+
+func (lc *lazyConn) Read(p []byte) (int, error) {
+	if !lc.openOnRead {
+		lc.opened.Wait()
+	}
+	err := lc.ensureOpen()
+	if err != nil {
+		return 0, err
 	}
 	return lc.conn.Read(p)
 }
 
 func (lc *lazyConn) Write(p []byte) (int, error) {
-	if lc.conn == nil {
-		lc.lock.Lock()
-		if lc.closed {
-			return 0, fmt.Errorf("use of closed connection")
-		}
-		if !lc.openOnWrite {
-			lc.opened.Wait()
-		}
-		conn, err := lc.connGetter()
-		if err != nil {
-			lc.lock.Unlock()
-			return 0, err
-		}
-		lc.conn = conn
-		lc.opened.Done()
-		lc.lock.Unlock()
+	if !lc.openOnWrite {
+		lc.opened.Wait()
+	}
+	err := lc.ensureOpen()
+	if err != nil {
+		return 0, err
 	}
 	return lc.conn.Write(p)
 }
 
 func (lc *lazyConn) Close() error {
 	lc.lock.Lock()
-	lc.closed = true
-	lc.lock.Unlock()
 	if lc.conn == nil {
-		return nil
+		lc.conn = &closedConn{}
+		lc.opened.Done()
 	}
+	lc.lock.Unlock()
 	return lc.conn.Close()
 }
 
