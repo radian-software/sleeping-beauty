@@ -153,6 +153,7 @@ func Test_Proxy_UpstreamClose(t *testing.T) {
 	defer proxy.Close()
 	conn, err := net.Dial("tcp", "127.0.0.1:7001")
 	assert.NoError(t, err)
+	_, _ = conn.Write([]byte("is anybody there?\n"))
 	closed := make(chan error)
 	go func() {
 		buf := make([]byte, 1024)
