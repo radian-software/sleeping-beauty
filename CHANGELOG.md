@@ -18,6 +18,15 @@ Behavior changes:
   server (they are used by hosting providers like Railway to see if
   you have bound to the expected port, or as a health check).
 
+Improvements:
+
+* If something is already listening on the configured command port
+  when Sleeping Beauty starts up, it will now immediately abort with
+  nonzero exit status. This is surely desired, since if there is
+  something already listening, then your webserver will not be able to
+  start anyway when traffic comes in, and it will all get very
+  confusing.
+
 ## 3.0.0
 
 Behavior changes:

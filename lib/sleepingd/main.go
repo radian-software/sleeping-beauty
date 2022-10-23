@@ -2,6 +2,7 @@ package sleepingd
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"sync"
@@ -23,6 +24,12 @@ type Options struct {
 func Main(opts *Options) error {
 	if err := validator.Validate(opts); err != nil {
 		return fmt.Errorf("internal logic error: failed struct validation: %v", err)
+	}
+	_, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", opts.CommandPort))
+	if err == nil {
+		// Command is already running somewhere else? This
+		// will screw things up, abort.
+		return fmt.Errorf("something is already listening on 127.0.0.1:%d", opts.CommandPort)
 	}
 	shell, err := loginshell.Shell()
 	if err != nil {
