@@ -60,32 +60,27 @@ func NewProxy(opts *ProxyOptions) (*Proxy, error) {
 				continue
 			}
 			go func(c net.Conn) {
-				if opts.NewConnectionCallback != nil {
-					opts.NewConnectionCallback()
-				}
-				uc, err := net.Dial(opts.Protocol, opts.UpstreamAddr)
-				if err != nil {
-					LogError(err)
-					return
-				}
-				clientActivityCh := make(chan struct{})
-				serverActivityCh := make(chan struct{})
-				go func() {
-					for {
-						<-serverActivityCh
-						if opts.DataCallback != nil {
-							opts.DataCallback()
-						}
+				uc := NewLazyConn(func() (net.Conn, error) {
+					if opts.NewConnectionCallback != nil {
+						opts.NewConnectionCallback()
 					}
-				}()
+					uc, err := net.Dial(opts.Protocol, opts.UpstreamAddr)
+					if err != nil {
+						LogError(err)
+						return nil, err
+					}
+					return uc, nil
+					// openOnRead: false
+					// openOnWrite: true
+					//
+					// Only actually open the
+					// connection once client
+					// writes to it.
+				}, false, true)
+				activityCh := make(chan struct{})
 				go func() {
-					firstClientDataSent := false
 					for {
-						<-clientActivityCh
-						if !firstClientDataSent && opts.FirstClientDataCallback != nil {
-							opts.FirstClientDataCallback()
-							firstClientDataSent = true
-						}
+						<-activityCh
 						if opts.DataCallback != nil {
 							opts.DataCallback()
 						}
@@ -99,11 +94,11 @@ func NewProxy(opts *ProxyOptions) (*Proxy, error) {
 					// disconnected unexpectedly
 					// which is not actionable on
 					// our end.
-					_ = CopyWithActivity(uc, c, clientActivityCh)
+					_ = CopyWithActivity(uc, c, activityCh)
 				}()
 				// Copy response from upstream server
 				// to client. Ignore errors, as above.
-				_ = CopyWithActivity(c, uc, serverActivityCh)
+				_ = CopyWithActivity(c, uc, activityCh)
 				// Once the upstream server closes its
 				// connection or is unable to send
 				// further data, we should proactively
