@@ -23,6 +23,14 @@ type ProxyOptions struct {
 	// track metrics on incoming connections, or to ensure that
 	// the upstream is available before traffic is proxied to it.
 	NewConnectionCallback func()
+	// FirstClientDataCallback is a function of no arguments,
+	// optional. If provided, then it is called synchronously the
+	// first time data is to be copied to the backend server. So,
+	// it is called after NewConnectionCallback but before
+	// DataCallback (or in the unusual case that the server sends
+	// data to the client before the converse, it is called after
+	// DataCallback).
+	FirstClientDataCallback func()
 	// DataCallback is a function of no arguments, optional. If
 	// provided, then it is called synchronously when data is to
 	// be copied either to or from the backend server. This could
@@ -60,10 +68,24 @@ func NewProxy(opts *ProxyOptions) (*Proxy, error) {
 					LogError(err)
 					return
 				}
-				activityCh := make(chan struct{})
+				clientActivityCh := make(chan struct{})
+				serverActivityCh := make(chan struct{})
 				go func() {
 					for {
-						<-activityCh
+						<-serverActivityCh
+						if opts.DataCallback != nil {
+							opts.DataCallback()
+						}
+					}
+				}()
+				go func() {
+					firstClientDataSent := false
+					for {
+						<-clientActivityCh
+						if !firstClientDataSent && opts.FirstClientDataCallback != nil {
+							opts.FirstClientDataCallback()
+							firstClientDataSent = true
+						}
 						if opts.DataCallback != nil {
 							opts.DataCallback()
 						}
@@ -77,11 +99,11 @@ func NewProxy(opts *ProxyOptions) (*Proxy, error) {
 					// disconnected unexpectedly
 					// which is not actionable on
 					// our end.
-					_ = CopyWithActivity(uc, c, activityCh)
+					_ = CopyWithActivity(uc, c, clientActivityCh)
 				}()
 				// Copy response from upstream server
 				// to client. Ignore errors, as above.
-				_ = CopyWithActivity(c, uc, activityCh)
+				_ = CopyWithActivity(c, uc, serverActivityCh)
 				// Once the upstream server closes its
 				// connection or is unable to send
 				// further data, we should proactively

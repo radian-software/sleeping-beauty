@@ -5,6 +5,19 @@ The format is based on [Keep a Changelog].
 
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 
+## 4.0.0
+
+Behavior changes:
+
+* The webserver is no longer awoken when a TCP connection is opened to
+  it, only when some data is sent on that connection. This is
+  technically a breaking change in behavior because there may be
+  servers that want to send some data to a client as soon as they
+  connect, but this is a better default for most cases since it
+  doesn't actually make sense for queries like `nc -z` to wake the
+  server (they are used by hosting providers like Railway to see if
+  you have bound to the expected port, or as a health check).
+
 ## 3.0.0
 
 Behavior changes:
