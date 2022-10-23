@@ -54,6 +54,7 @@ func Test_Proxy_NoUpstream(t *testing.T) {
 	defer proxy.Close()
 	conn, err := net.Dial("tcp", "127.0.0.1:7001")
 	assert.NoError(t, err)
+	_, _ = conn.Write([]byte("is anybody there?\n"))
 	data, err := io.ReadAll(conn)
 	assert.NoError(t, err)
 	assert.Empty(t, data)
