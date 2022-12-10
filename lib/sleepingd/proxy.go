@@ -53,7 +53,7 @@ func NewProxy(opts *ProxyOptions) (*Proxy, error) {
 				continue
 			}
 			go func(c net.Conn) {
-				uc := NewLazyConn(func() (net.Conn, error) {
+				uc := NewLazyConn(func() (SimpleConn, error) {
 					if opts.NewConnectionCallback != nil {
 						opts.NewConnectionCallback()
 					}
