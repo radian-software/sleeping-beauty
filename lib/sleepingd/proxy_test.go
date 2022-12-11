@@ -42,6 +42,9 @@ func Test_Proxy_HTTP(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "Hello, world!\n", string(body))
 	_ = res.Body.Close()
+	// Nothing should be running anymore
+	time.Sleep(100 * time.Millisecond)
+	assert.Zero(t, globalCopyCounter)
 }
 
 func Test_Proxy_NoUpstream(t *testing.T) {
@@ -64,6 +67,9 @@ func Test_Proxy_NoUpstream(t *testing.T) {
 	data, err := io.ReadAll(conn)
 	assert.NoError(t, err)
 	assert.Empty(t, data)
+	// Nothing should be running anymore
+	time.Sleep(100 * time.Millisecond)
+	assert.Zero(t, globalCopyCounter)
 }
 
 func getEchoserver(t *testing.T, protocol string, addr string) net.Listener {
@@ -81,7 +87,7 @@ func getEchoserver(t *testing.T, protocol string, addr string) net.Listener {
 	return l
 }
 
-func Test_Proxy_NewConnectionChannel(t *testing.T) {
+func Test_Proxy_NewConnectionCallback(t *testing.T) {
 	echoserver := getEchoserver(t, "tcp", "127.0.0.1:7000")
 	defer echoserver.Close()
 	numConns := 0
@@ -112,6 +118,9 @@ func Test_Proxy_NewConnectionChannel(t *testing.T) {
 	}
 	time.Sleep(250 * time.Millisecond)
 	assert.Equal(t, 5, numConns)
+	// Nothing should be running anymore
+	time.Sleep(100 * time.Millisecond)
+	assert.Zero(t, globalCopyCounter)
 }
 
 func getDelayedCloser(t *testing.T, protocol string, addr string, delay time.Duration) net.Listener {
@@ -178,4 +187,67 @@ func Test_Proxy_UpstreamClose(t *testing.T) {
 	case <-closed:
 		// proceed
 	}
+	// Nothing should be running anymore
+	time.Sleep(100 * time.Millisecond)
+	assert.Zero(t, globalCopyCounter)
+}
+
+// Listen for connections on the given protocol and addr. Accept them,
+// but if any data is sent on an inbound connection, fail the test.
+func getBombServer(t *testing.T, protocol string, addr string) net.Listener {
+	l, err := net.Listen(protocol, addr)
+	assert.NoError(t, err)
+	go func() {
+		for {
+			conn, err := l.Accept()
+			if err != nil {
+				return
+			}
+			go func(c net.Conn) {
+				nr, _ := c.Read(make([]byte, 1))
+				assert.Zero(t, nr, "bomb server received some data")
+			}(conn)
+		}
+	}()
+	return l
+}
+
+// This is a regression test, to make sure that CopyWithActivity
+// sessions don't pile up when clients open and close TCP connections
+// without sending any data. It also covers making sure no traffic is
+// actually proxied to the upstream if data is not sent.
+func Test_Proxy_MemoryLeak(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Hello, world!\n"))
+	})
+	server := http.Server{
+		Addr:    "127.0.0.1:7000",
+		Handler: mux,
+	}
+	go server.ListenAndServe()
+	defer server.Close()
+	proxy, err := NewProxy(&ProxyOptions{
+		Protocol:     "tcp",
+		ListenAddr:   "127.0.0.1:7001",
+		UpstreamAddr: "127.0.0.1:7000",
+	})
+	assert.NoError(t, err)
+	defer proxy.Close()
+	for i := 0; i < 5; i++ {
+		go func() {
+			// Open a TCP connection but then close it
+			// without sending any data.
+			conn, err := net.Dial("tcp", "127.0.0.1:7001")
+			assert.NoError(t, err)
+			err = conn.Close()
+			assert.NoError(t, err)
+		}()
+	}
+	// Nothing should be running anymore - this is the part of the
+	// test that will fail if there is a memory leak caused by the
+	// bug this regression test is intended to catch
+	time.Sleep(100 * time.Millisecond)
+	assert.Zero(t, globalCopyCounter)
 }

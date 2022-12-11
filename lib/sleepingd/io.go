@@ -126,6 +126,13 @@ func (lc *lazyConn) Close() error {
 	return lc.conn.Close()
 }
 
+// Global variable to keep track of how many CopyWithActivity sessions
+// are currently active. This should not remain nonzero for
+// significant amounts of time unless there is active traffic, if it
+// does then that indicates a memory leak.
+var globalCopyCounter = 0
+var globalCopyLock sync.Mutex
+
 // CopyWithActivity copies all the data from src to dst, and sends a
 // signal to activityCh each time any amount of data is copied.
 // Warning: please ensure that both src.Read and dst.Write will both
@@ -136,6 +143,14 @@ func (lc *lazyConn) Close() error {
 // returned error is nil if all data was copied, non-nil otherwise
 // (either due to a read error or a write error).
 func CopyWithActivity(dst io.Writer, src io.Reader, activityCh chan<- struct{}) error {
+	globalCopyLock.Lock()
+	globalCopyCounter += 1
+	globalCopyLock.Unlock()
+	defer func() {
+		globalCopyLock.Lock()
+		globalCopyCounter -= 1
+		globalCopyLock.Unlock()
+	}()
 	buf := make([]byte, 32*1024)
 	// Implementation based on copyBuffer in io from stdlib
 	for {
