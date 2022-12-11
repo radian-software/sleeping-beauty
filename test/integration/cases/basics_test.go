@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func killNicely(t *testing.T, proc *os.Process) {
@@ -30,6 +31,9 @@ func killNicely(t *testing.T, proc *os.Process) {
 		proc.Kill()
 	}
 	<-done
+	// Give subprocesses chance to exit and unbind from port, so
+	// we do not interfere with other tests
+	time.Sleep(250 * time.Millisecond)
 }
 
 func Test_Basics(t *testing.T) {
@@ -139,7 +143,7 @@ func Test_ConcurrentRequests(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			res, err := client.Get("http://127.0.0.1:4444/about")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			body, err := io.ReadAll(res.Body)
 			assert.NoError(t, err)
 			assert.Contains(t, string(body), "About this application")
