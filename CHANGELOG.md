@@ -15,6 +15,13 @@ Features:
   port (bound to the interface named by
   `SLEEPING_BEAUTY_METRICS_HOST`, defaults to `0.0.0.0`).
 
+Bugfixes:
+
+* A memory leak has been fixed that would cause memory usage to
+  increase over time when TCP connections were opened and closed to
+  the server without any data being sent. This is believed to be a
+  regression introduced in 4.0.0.
+
 ## 4.0.0
 
 Behavior changes:

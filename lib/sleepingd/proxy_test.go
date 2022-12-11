@@ -14,6 +14,7 @@ import (
 )
 
 func Test_Proxy_HTTP(t *testing.T) {
+	globalCopyCounter = 0 // in case messed up by another failing test
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -42,12 +43,16 @@ func Test_Proxy_HTTP(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "Hello, world!\n", string(body))
 	_ = res.Body.Close()
+	// Make sure we close idle connections, otherwise there will
+	// still be a goroutine spinning on the server
+	client.CloseIdleConnections()
 	// Nothing should be running anymore
 	time.Sleep(100 * time.Millisecond)
 	assert.Zero(t, globalCopyCounter)
 }
 
 func Test_Proxy_NoUpstream(t *testing.T) {
+	globalCopyCounter = 0 // in case messed up by another failing test
 	proxy, err := NewProxy(&ProxyOptions{
 		Protocol:     "tcp",
 		ListenAddr:   "127.0.0.1:7001",
@@ -73,6 +78,7 @@ func Test_Proxy_NoUpstream(t *testing.T) {
 }
 
 func getEchoserver(t *testing.T, protocol string, addr string) net.Listener {
+	globalCopyCounter = 0 // in case messed up by another failing test
 	l, err := net.Listen(protocol, addr)
 	assert.NoError(t, err)
 	go func() {
@@ -88,6 +94,7 @@ func getEchoserver(t *testing.T, protocol string, addr string) net.Listener {
 }
 
 func Test_Proxy_NewConnectionCallback(t *testing.T) {
+	globalCopyCounter = 0 // in case messed up by another failing test
 	echoserver := getEchoserver(t, "tcp", "127.0.0.1:7000")
 	defer echoserver.Close()
 	numConns := 0
@@ -111,15 +118,31 @@ func Test_Proxy_NewConnectionCallback(t *testing.T) {
 			conn, err := net.Dial("tcp", "127.0.0.1:7001")
 			assert.NoError(t, err)
 			conn.Write([]byte(message))
+			go func() {
+				// We have to close the connection
+				// because ReadAll won't return until
+				// it's closed. But closing the
+				// connection also prevents us from
+				// reading, so we have to close it
+				// after ReadAll gets the chance to
+				// read everything important.
+				time.Sleep(100 * time.Millisecond)
+				err := conn.Close()
+				assert.NoError(t, err)
+			}()
 			data, err := io.ReadAll(conn)
-			assert.NoError(t, err)
+			// Expect error because we closed the
+			// connection on our side, it might make more
+			// sense in a real application for the server
+			// to close the connection after sending its
+			// response.
+			assert.Error(t, err)
 			assert.Equal(t, message, string(data))
 		}()
 	}
-	time.Sleep(250 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 	assert.Equal(t, 5, numConns)
 	// Nothing should be running anymore
-	time.Sleep(100 * time.Millisecond)
 	assert.Zero(t, globalCopyCounter)
 }
 
@@ -145,6 +168,7 @@ func getDelayedCloser(t *testing.T, protocol string, addr string, delay time.Dur
 }
 
 func Test_Proxy_UpstreamClose(t *testing.T) {
+	globalCopyCounter = 0 // in case messed up by another failing test
 	// This test ensures that when the upstream server closes its
 	// connection, that closure is propagated to clients.
 	// Otherwise we get a bug where smart clients like web
@@ -217,6 +241,7 @@ func getBombServer(t *testing.T, protocol string, addr string) net.Listener {
 // without sending any data. It also covers making sure no traffic is
 // actually proxied to the upstream if data is not sent.
 func Test_Proxy_MemoryLeak(t *testing.T) {
+	globalCopyCounter = 0 // in case messed up by another failing test
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

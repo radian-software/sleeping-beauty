@@ -73,12 +73,15 @@ func NewProxy(opts *ProxyOptions) (*Proxy, error) {
 				activityCh := make(chan struct{})
 				go func() {
 					for {
-						<-activityCh
+						if _, ok := <-activityCh; !ok {
+							break
+						}
 						if opts.DataCallback != nil {
 							opts.DataCallback()
 						}
 					}
 				}()
+				doneCh := make(chan struct{}, 2)
 				go func() {
 					// Copy request from client to
 					// upstream server. Ignore
@@ -88,10 +91,27 @@ func NewProxy(opts *ProxyOptions) (*Proxy, error) {
 					// which is not actionable on
 					// our end.
 					_ = CopyWithActivity(uc, c, activityCh)
+					doneCh <- struct{}{}
 				}()
-				// Copy response from upstream server
-				// to client. Ignore errors, as above.
-				_ = CopyWithActivity(c, uc, activityCh)
+				go func() {
+					// Copy response from upstream
+					// server to client. Ignore
+					// errors, as above.
+					_ = CopyWithActivity(c, uc, activityCh)
+					doneCh <- struct{}{}
+				}()
+				// Wait for at least one copy
+				// operation to finish. If the copy
+				// operation finishes it means that
+				// the connection is closed. Just
+				// because all the data is sent on an
+				// http connection, for example, there
+				// is always the possibility of
+				// copying more data later (http/2,
+				// websocket, etc). When the
+				// connection is closed, we should
+				// abort everything.
+				<-doneCh
 				// Once the upstream server closes its
 				// connection or is unable to send
 				// further data, we should proactively
@@ -103,6 +123,15 @@ func NewProxy(opts *ProxyOptions) (*Proxy, error) {
 				// may attempt to reuse it, and hang.
 				_ = uc.Close()
 				_ = c.Close()
+				// Also make sure to close our channel
+				// so the loop goroutine above doesn't
+				// keep spinning forever. We have to
+				// wait for *both* goroutines to exit
+				// here, which should happen promptly
+				// now that we have closed the
+				// connections.
+				<-doneCh
+				close(activityCh)
 			}(conn)
 		}
 	}()
