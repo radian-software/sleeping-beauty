@@ -3,12 +3,15 @@ package sleepingd
 import (
 	"fmt"
 	"net"
+	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/riywo/loginshell"
 	"gopkg.in/validator.v2"
 )
@@ -19,14 +22,28 @@ type Options struct {
 	CommandPort    int    `validate:"min=1"`
 	ListenPort     int    `validate:"min=1"`
 	ListenHost     string `validate:"nonzero"`
+	MetricsPort    int    `validate:"min=0"`
+	MetricsHost    string `validate:"nonzero"`
 }
 
 func Main(opts *Options) error {
 	if err := validator.Validate(opts); err != nil {
 		return fmt.Errorf("internal logic error: failed struct validation: %v", err)
 	}
-	_, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", opts.CommandPort))
+	if opts.MetricsPort != 0 {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/debug/pprof/", pprof.Index)
+		mux.Handle("/metrics", promhttp.Handler())
+		go http.ListenAndServe(fmt.Sprintf("%s:%d", opts.MetricsHost, opts.MetricsPort), mux)
+		fmt.Fprintf(
+			os.Stderr,
+			"sleepingd: pprof and prometheus metrics on %s:%d\n",
+			opts.MetricsHost, opts.MetricsPort,
+		)
+	}
+	conn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", opts.CommandPort))
 	if err == nil {
+		_ = conn.Close()
 		// Command is already running somewhere else? This
 		// will screw things up, abort.
 		return fmt.Errorf("something is already listening on 127.0.0.1:%d", opts.CommandPort)

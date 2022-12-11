@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog].
 
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 
+## 4.1.0
+
+Features:
+
+* If you set `SLEEPING_BEAUTY_METRICS_PORT` to a positive integer,
+  then Sleeping Beauty will expose pprof profiling data (at
+  `/debug/pprof`) and Prometheus metrics (at `/metrics`) on the named
+  port (bound to the interface named by
+  `SLEEPING_BEAUTY_METRICS_HOST`, defaults to `0.0.0.0`).
+
 ## 4.0.0
 
 Behavior changes:

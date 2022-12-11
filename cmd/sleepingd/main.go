@@ -14,6 +14,8 @@ type envConfig struct {
 	CommandPort    int    `env:"SLEEPING_BEAUTY_COMMAND_PORT,required"`
 	ListenPort     int    `env:"SLEEPING_BEAUTY_LISTEN_PORT,required"`
 	ListenHost     string `env:"SLEEPING_BEAUTY_LISTEN_HOST,notEmpty" envDefault:"0.0.0.0"`
+	MetricsPort    int    `env:"SLEEPING_BEAUTY_METRICS_PORT"`
+	MetricsHost    string `env:"SLEEPING_BEAUTY_METRICS_HOST,notEmpty" envDefault:"0.0.0.0"`
 }
 
 func mainE() error {
@@ -30,12 +32,17 @@ func mainE() error {
 	if envCfg.ListenPort <= 0 {
 		return fmt.Errorf("invalid port: %d", envCfg.ListenPort)
 	}
+	if envCfg.MetricsPort < 0 {
+		return fmt.Errorf("invalid port: %d", envCfg.MetricsPort)
+	}
 	return sleepingd.Main(&sleepingd.Options{
 		Command:        envCfg.Command,
 		TimeoutSeconds: envCfg.TimeoutSeconds,
 		CommandPort:    envCfg.CommandPort,
 		ListenPort:     envCfg.ListenPort,
 		ListenHost:     envCfg.ListenHost,
+		MetricsPort:    envCfg.MetricsPort,
+		MetricsHost:    envCfg.MetricsHost,
 	})
 }
 

@@ -57,6 +57,17 @@ SLEEPING_BEAUTY_LISTEN_PORT=80
 # interfaces. You may wish to set this to 127.0.0.1 instead if you
 # have placed Sleeping Beauty behind a further proxy or load balancer.
 SLEEPING_BEAUTY_LISTEN_HOST=0.0.0.0
+
+# Optional. Port on which Sleeping Beauty will expose metrics. No
+# default value; if not provided then a metrics server is not run. You
+# can access pprof profiling data at /debug/pprof, and Prometheus
+# metrics at /metrics.
+SLEEPING_BEAUTY_METRICS_PORT=9090
+
+# Optional. Network interface on which to expose metrics. Defaults to
+# 0.0.0.0, meaning listen on all interfaces. You may wish to set this
+# to 127.0.0.1 if your metrics are ingested by a sidecar process
+# running in the container.
 ```
 
 After configuring environment variables, simply run the `sleepingd`
