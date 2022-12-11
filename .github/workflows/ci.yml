@@ -22,7 +22,10 @@ jobs:
           image="$(< ./test/integration/ci_image)"
           docker pull "${image}"
           docker tag "${image}" sleeping-beauty-integration-test:latest
+      # Pass -v because some tests might hang if they were implemented
+      # incorrectly, and debugging this will be a lot easier if you
+      # can see the incomplete log output.
       - name: Unit tests
-        run: "make test-unit"
+        run: "make test-unit TEST_FLAGS=-v"
       - name: Integration tests
-        run: "make test-integration"
+        run: "make test-integration TEST_FLAGS=-v"
