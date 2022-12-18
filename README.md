@@ -68,6 +68,7 @@ SLEEPING_BEAUTY_METRICS_PORT=9090
 # 0.0.0.0, meaning listen on all interfaces. You may wish to set this
 # to 127.0.0.1 if your metrics are ingested by a sidecar process
 # running in the container.
+SLEEPING_BEAUTY_METRICS_HOST=0.0.0.0
 ```
 
 After configuring environment variables, simply run the `sleepingd`
