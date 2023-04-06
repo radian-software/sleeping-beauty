@@ -11,6 +11,15 @@ From Wikipedia:
 
 \[citation needed\]
 
+## Status
+
+Sleeping Beauty is considered largely feature-complete, stable, and
+suitable for use in production. New features may be added in the case
+of compelling reported use cases, but backwards compatibility will be
+preserved except on major version releases, see the changelog for
+details. Bug fixes and security issues will be addressed promptly to
+the best of my ability.
+
 ## Synopsis
 
 Sleeping Beauty allows you to run a web application that automatically
@@ -99,6 +108,51 @@ pid1](https://blog.phusion.nl/2015/01/20/docker-and-the-pid-1-zombie-reaping-pro
 to ensure that zombie processes are reaped properly. Modern versions
 of Docker can accomplish this transparently if you pass `--init` to
 `docker run`.
+
+## Caveats
+
+There's one major problem with Sleeping Beauty, which is that there is
+unfortunately no way for it to guarantee that all resources are
+released when it shuts down your server process.
+
+One common way that this can fail is if your server process starts its
+own subprocesses, which are not properly terminated when the parent
+dies. You can check the output of `ps` before and after Sleeping
+Beauty terminates your server, to see that all new sub-processes have
+terminated.
+
+The other big issue has to do with the [kernel file
+cache](https://unix.stackexchange.com/q/736941). When you read in
+files from disk, the kernel keeps them in memory. As a general
+practice, the kernel keeps lots of things in memory, often filling it
+to its limit, because the vast majority of that memory can be easily
+freed as soon as it is needed for something else (thus it would be a
+waste of time to bother doing it earlier than necessary). However,
+it's an issue because tools for container resource utilization (such
+as `docker stats`) often take into account cached memory even when it
+is freeable.
+
+So, for example, if your webserver reads a bunch of files, then is
+terminated by Sleeping Beauty, some memory may be retained even if the
+memory-holding processes in the container are all terminated.
+Depending on the workload, this overhead can be substantial. You can
+check the hypothesis by investigating the `docker stats` output
+before, during, and after the execution of your server process by
+Sleeping Beauty. One way to reclaim some memory is by running `vmtouch
+-e` on modified files and directories. You can typically reclaim *all*
+cached memory with `echo 3 > /proc/sys/vm/drop_caches`, but this can
+only be done as root from the host system, not from within a
+container.
+
+As a result, you can run into issues in environments like
+[Railway](https://railway.app/) where you are billed based on measured
+resource utilization. I reached out to them about discrepancies in
+memory metrics leading to higher bills, and they confirmed that this
+is a known problem, but it's hard to solve given the limits of
+containerization tooling at present.
+
+As always when deploying applications into production, exercise
+caution and monitor your metrics.
 
 ## Run tests
 
