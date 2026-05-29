@@ -28,7 +28,7 @@ if [[ -t 1 ]]; then
 fi
 
 mkdir -p "${repo_dir}/.cache/gopkg"
-docker run "${it[@]}" --rm --init -v "${repo_dir}:/src:ro" -w /src \
+docker run "${it[@]}" --rm --init -v "${repo_dir}:/src" -w /src \
     -v "${repo_dir}/.cache/gopkg:/go-cache" -e DOCKER=1 \
     --ulimit nofile="$(ulimit -n -S):$(ulimit -n -H)" \
     --entrypoint=/src/docker/pid2.bash \

@@ -2,3 +2,4 @@
 /.releasenotes.tmp.md
 /dist
 /sleepingd
+/test/integration/resources/__pycache__

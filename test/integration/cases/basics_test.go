@@ -32,8 +32,9 @@ func killNicely(t *testing.T, proc *os.Process) {
 	}
 	<-done
 	// Give subprocesses chance to exit and unbind from port, so
-	// we do not interfere with other tests
-	time.Sleep(250 * time.Millisecond)
+	// we do not interfere with other tests. Sometimes it takes
+	// quite a while.
+	time.Sleep(5000 * time.Millisecond)
 }
 
 func Test_Basics(t *testing.T) {
@@ -52,7 +53,7 @@ func Test_Basics(t *testing.T) {
 	assert.NoError(t, sb.Start())
 	defer killNicely(t, sb.Process)
 	time.Sleep(500 * time.Millisecond)
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		curl := exec.Command("curl", "-m5", "-sS", "http://127.0.0.1:4444")
 		curlStdout := bytes.Buffer{}
 		curl.Stdout = &curlStdout
@@ -139,16 +140,14 @@ func Test_ConcurrentRequests(t *testing.T) {
 	defer killNicely(t, sb.Process)
 	time.Sleep(500 * time.Millisecond)
 	wg := sync.WaitGroup{}
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		go func() {
+	for range 100 {
+		wg.Go(func() {
 			res, err := client.Get("http://127.0.0.1:4444/about")
 			require.NoError(t, err)
 			body, err := io.ReadAll(res.Body)
 			assert.NoError(t, err)
 			assert.Contains(t, string(body), "About this application")
-			wg.Done()
-		}()
+		})
 	}
 	wg.Wait()
 	assert.NotContains(t, sbOutput.String(), "fatal")
