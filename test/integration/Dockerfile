@@ -1,4 +1,4 @@
-# EOL April 2027
+# EOL April 2031
 FROM ubuntu:26.04
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive \
