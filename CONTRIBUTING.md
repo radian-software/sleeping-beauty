@@ -25,6 +25,8 @@ make test-integration TEST_FLAGS=-v
   permission to publish to the `sleeping-beauty` repository
     * You can use the `radian-sb-bot` account for this
 * Run `make release` to do all the publishing steps
+    * If you screw up, push a new commit and re-run with `FORCE=1` to
+      update the tag
 
 ## Updating the CI image
 
