@@ -14,12 +14,6 @@ nfpms:
       - apk
       - deb
       - rpm
-snapcrafts:
-  - publish: false
-    summary: *description
-    description: *description
-    confinement: classic
-    license: *license
 dockers:
   - image_templates:
       - "radiansoftware/sleeping-beauty:latest"
