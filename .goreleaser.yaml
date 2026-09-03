@@ -2,6 +2,9 @@ builds:
   - id: sleeping-beauty
     main: ./cmd/sleepingd
     binary: sleepingd
+    goos:
+      - darwin
+      - linux
 nfpms:
   - vendor: Radian LLC
     maintainer: &author Radian LLC <contact+sleeping-beauty@radian.codes>
