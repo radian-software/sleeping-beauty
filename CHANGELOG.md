@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog].
 
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 
+## 4.1.1
+
+Routine dependency upgrades.
+
 ## 4.1.0
 
 Features:

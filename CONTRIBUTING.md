@@ -23,6 +23,7 @@ make test-integration TEST_FLAGS=-v
 * Login to Docker Hub (`docker login -u yourname`). You need
   **@raxod502** to add you to the radiansoftware organization with
   permission to publish to the `sleeping-beauty` repository
+    * You can use the `radian-sb-bot` account for this
 * Run `make release` to do all the publishing steps
 
 ## Updating the CI image
