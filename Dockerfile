@@ -1,4 +1,5 @@
 FROM scratch
 
 ENTRYPOINT ["/sleepingd"]
-COPY sleepingd /
+ARG TARGETPLATFORM
+COPY $TARGETPLATFORM/sleepingd /

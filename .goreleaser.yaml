@@ -1,3 +1,4 @@
+version: 2
 builds:
   - id: sleeping-beauty
     main: ./cmd/sleepingd
@@ -14,9 +15,11 @@ nfpms:
       - apk
       - deb
       - rpm
-dockers:
-  - image_templates:
-      - "radiansoftware/sleeping-beauty:latest"
-      - "radiansoftware/sleeping-beauty:{{ .Tag }}"
+dockers_v2:
+  - images:
+      - radiansoftware/sleeping-beauty
+    tags:
+      - latest
+      - "{{ .Tag }}"
 checksum:
   name_template: "checksums.txt"
