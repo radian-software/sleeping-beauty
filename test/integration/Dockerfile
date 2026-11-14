@@ -1,3 +1,5 @@
+# Note: when updating, run update_image.bash
+
 # EOL April 2031
 FROM ubuntu:26.04
 
